@@ -34,12 +34,16 @@ class BitcoinTradingEnv(gym.Env):
     def _next_observation(self):
         end = self.current_step + self.lookback_window_size + 1
 
+        scaled_df = self.active_df.values[:end].astype('float64')
+        scaled_df = self.scaler.fit_transform(scaled_df)
+        scaled_df = pd.DataFrame(scaled_df, columns=self.df.columns)
+
         obs = np.array([
-            self.active_df['Open'].values[self.current_step:end],
-            self.active_df['High'].values[self.current_step:end],
-            self.active_df['Low'].values[self.current_step:end],
-            self.active_df['Close'].values[self.current_step:end],
-            self.active_df['Volume_(BTC)'].values[self.current_step:end],
+            scaled_df['Open'].values[self.current_step:end],
+            scaled_df['High'].values[self.current_step:end],
+            scaled_df['Low'].values[self.current_step:end],
+            scaled_df['Close'].values[self.current_step:end],
+            scaled_df['Volume_(BTC)'].values[self.current_step:end],
         ])
 
         scaled_history = self.scaler.fit_transform(self.account_history)
@@ -62,9 +66,6 @@ class BitcoinTradingEnv(gym.Env):
 
         self.active_df = self.df[self.frame_start - self.lookback_window_size:
                                  self.frame_start + self.steps_left]
-        self.active_df = self.scaler.fit_transform(self.active_df)
-        self.active_df = pd.DataFrame(
-            self.active_df, columns=self.df.columns)
 
     def reset(self):
         self.balance = self.initial_balance
@@ -74,7 +75,7 @@ class BitcoinTradingEnv(gym.Env):
         self._reset_session()
 
         self.account_history = np.repeat([
-            [self.net_worth],
+            [self.balance],
             [0],
             [0],
             [0],
@@ -118,7 +119,7 @@ class BitcoinTradingEnv(gym.Env):
         self.net_worth = self.balance + self.btc_held * current_price
 
         self.account_history = np.append(self.account_history, [
-            [self.net_worth],
+            [self.balance],
             [btc_bought],
             [cost],
             [btc_sold],
@@ -127,6 +128,8 @@ class BitcoinTradingEnv(gym.Env):
 
     def step(self, action):
         current_price = self._get_current_price() + 0.01
+
+        prev_net_worth = self.net_worth
 
         self._take_action(action, current_price)
 
@@ -140,7 +143,7 @@ class BitcoinTradingEnv(gym.Env):
             self._reset_session()
 
         obs = self._next_observation()
-        reward = self.net_worth
+        reward = self.net_worth - prev_net_worth
         done = self.net_worth <= 0
 
         return obs, reward, done, {}

@@ -1,2 +1,4 @@
 .vscode
+data
+tensorboard
 **/__pycache__

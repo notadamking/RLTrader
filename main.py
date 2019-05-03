@@ -1,12 +1,11 @@
 import gym
+import pandas as pd
 
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2
+from stable_baselines import A2C
 
 from env.BitcoinTradingEnv import BitcoinTradingEnv
-
-import pandas as pd
 
 df = pd.read_csv('./data/bitstamp.csv')
 df = df.sort_values('Timestamp')
@@ -19,7 +18,8 @@ test_df = df[slice_point:]
 train_env = DummyVecEnv(
     [lambda: BitcoinTradingEnv(train_df, serial=True)])
 
-model = PPO2(MlpPolicy, train_env, verbose=1, tensorboard_log="./tensorboard/")
+model = A2C(MlpPolicy, train_env, verbose=1,
+            tensorboard_log="./tensorboard/")
 model.learn(total_timesteps=200000)
 
 test_env = DummyVecEnv(
