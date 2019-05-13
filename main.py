@@ -4,14 +4,15 @@ import pandas as pd
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import A2C
-
 from env.BitcoinTradingEnv import BitcoinTradingEnv
+
+
 
 df = pd.read_csv('./data/bitstamp.csv')
 df = df.sort_values('Timestamp')
 
+# split in train & test
 slice_point = int(len(df) - 50000)
-
 train_df = df[:slice_point]
 test_df = df[slice_point:]
 
