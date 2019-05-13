@@ -1,7 +1,7 @@
 numpy
 pandas
 matplotlib
-sklearn
 gym
 stable_baselines
 alpha_vantage
+mpl-finance

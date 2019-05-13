@@ -1,15 +1,29 @@
-import gym
-import pandas as pd
-
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import A2C
+import matplotlib.pyplot as plt
+
 from env.BitcoinTradingEnv import BitcoinTradingEnv
+from src.utils.DataLoader import DataLoader
+from src.utils.enum import TECHIND
 
 
+# Example how to load BTC data online from AlphaVantage
+# get free API key from https://www.alphavantage.co/support/#api-key
+ALPHA_KEY =""
+load = DataLoader(ALPHA_KEY)
+#df = load.get_crypto("BTC")
+# Same for equity
+#df = load.get_stock("MSFT")
+# same for technical indicators
+#ti = load.get_tech_indicator(stock="MSFT",indicator=TECHIND.TECHIND.BBANDS)
+#print(ti.head())
 
-df = pd.read_csv('./data/bitstamp.csv')
-df = df.sort_values('Timestamp')
+
+#load bitcoin data from local file
+df = load.get_local_data('./data/bitstamp.csv')
+
+
 
 # split in train & test
 slice_point = int(len(df) - 50000)

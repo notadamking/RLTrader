@@ -1,6 +1,7 @@
 from alpha_vantage.cryptocurrencies import CryptoCurrencies
 from alpha_vantage.techindicators import TechIndicators
 from alpha_vantage.timeseries import TimeSeries
+import pandas as pd
 
 from src.utils.enum import TimeFrame
 from src.utils.enum import TECHIND
@@ -14,6 +15,9 @@ class DataLoader:
     https://www.alphavantage.co/support/#support
 
     FOREX, while supported, is not implemented.
+    
+    API details here:
+    https://github.com/RomelTorres/alpha_vantage
     """
     def __init__(self, api_key):
         self.API_KEY = api_key
@@ -21,13 +25,18 @@ class DataLoader:
         self.ti = TechIndicators(key=self.API_KEY, output_format='pandas')
         self.ts = TimeSeries(key=self.API_KEY, output_format='pandas')
 
+
+    def get_local_data(self, path):
+        df = pd.read_csv(path)
+        return df.sort_values('Timestamp')
+
     def get_crypto(self, crypto_symbol):
 
-        data, _ = self.cc.get_digital_currency_intraday(symbol=crypto_symbol, market='CNY')
+        data, _ = self.cc.get_digital_currency_daily(symbol=crypto_symbol, market='CNY')
 
-        return data
+        return rename_data(data, crypto=True)
 
-    def get_stock(self, stock:str, period: TimeFrame = TimeFrame.TimeFrame.DAILY, full: bool = False):
+    def get_stock(self, stock:str, period = TimeFrame.TimeFrame.DAILY, full: bool = False):
         """
         Returns stock data and meta data of the ticker for the specified time frame
         :param stock: [ENUM]: Stock ticker
@@ -37,23 +46,29 @@ class DataLoader:
         """
         if period is TimeFrame.TimeFrame.DAILY:
             if full:
-                return self.ts.get_daily(symbol=stock.upper(), outputsize='full')
+                data, _  = self.ts.get_daily(symbol=stock.upper(), outputsize='full')
+                return rename_data(data)
             else:
-                return self.ts.get_daily(symbol=stock.upper(), outputsize='compact')
+                data, _ = self.ts.get_daily(symbol=stock.upper(), outputsize='compact')
+                return rename_data(data)
 
         if period is TimeFrame.TimeFrame.WEEKLY:
             if full:
-                return self.ts.get_weekly(symbol=stock.upper(), outputsize='full')
+                data, _ = data = self.ts.get_weekly(symbol=stock.upper(), outputsize='full')
+                return rename_data(data)
             else:
-                return self.ts.get_weekly(symbol=stock.upper(), outputsize='compact')
+                data, _  = self.ts.get_weekly(symbol=stock.upper(), outputsize='compact')
+                return rename_data(data)
 
         if period is TimeFrame.TimeFrame.MONTHLY:
             if full:
-                return self.ts.get_monthly(symbol=stock.upper(), outputsize='full')
+                data, _  = self.ts.get_monthly(symbol=stock.upper(), outputsize='full')
+                return rename_data(data)
             else:
-                return self.ts.get_monthly(symbol=stock.upper(), outputsize='compact')
+                data, _ = self.ts.get_monthly(symbol=stock.upper(), outputsize='compact')
+                return rename_data(data)
 
-    def get_intraday(self, stock: str, interval: INTERVAL = INTERVAL.INTERVAL.FIVE_MIN, full: bool = False):
+    def get_intraday_stock(self, stock: str, interval: INTERVAL = INTERVAL.INTERVAL.FIVE_MIN, full: bool = False):
         """
         Returns intraday tick data for the given stock in the given time interval
         :param stock: [ENUM] ticker
@@ -63,9 +78,11 @@ class DataLoader:
         """
 
         if full:
-            return self.ts.get_intraday(symbol=stock.upper(), interval=interval.value, outputsize='full')
+            data, _  = self.ts.get_intraday(symbol=stock.upper(), interval=interval.value, outputsize='full')
+            return rename_data(data)
         else:
-            return self.ts.get_intraday(symbol=stock.upper(), interval=interval.value, outputsize='compact')
+            data, _  = self.ts.get_intraday(symbol=stock.upper(), interval=interval.value, outputsize='compact')
+            return rename_data(data)
 
     def get_tech_indicator(self, stock="MSFT",
                            indicator=TECHIND.TECHIND.BBANDS,
@@ -118,3 +135,30 @@ class DataLoader:
 
         return data
 
+
+def rename_data(data, crypto=False):
+    """
+    :param data:
+    :return:
+    """
+    data = __rename_column(data, "date", 'Date')
+    data = __rename_column(data, "1. open", 'Open')
+    data = __rename_column(data, "2. high", 'High')
+    data = __rename_column(data, "3. low", 'Low')
+    data = __rename_column(data, "4. close", 'Close')
+    data = __rename_column(data, "5. volume", 'Volume')
+    if crypto:
+        data = __rename_column(data, "6. market cap (USD)", 'MarketCap')
+
+    return data
+
+
+def __rename_column(df, old_name, new_name):
+    """
+    Renames a column  in a pandas dataframe
+    :param df: pandas dataframe
+    :param old_name:
+    :param new_name:
+    :return: data frame with renamed column
+    """
+    return df.rename(index=str, columns={old_name: new_name})
