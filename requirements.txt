@@ -1,0 +1,7 @@
+gym
+pandas
+numpy
+scikit-learn
+stable-baselines
+tensorflow-gpu==1.12.0
+mpl_finance
