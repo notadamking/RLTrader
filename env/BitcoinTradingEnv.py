@@ -38,8 +38,8 @@ class BitcoinTradingEnv(gym.Env):
 
     def _next_observation(self):
         scaled_df = self.df[['Open', 'High', 'Low',
-                             'Close', 'Volume BTC', 'Volume USD']].copy().values[:self.current_step + 2].astype('float64')
-        scaled_df = self.scaler.fit_transform(scaled_df)
+                             'Close', 'Volume BTC', 'Volume USD']].values[:self.current_step + 2]
+        scaled_df = self.scaler.fit_transform(scaled_df.astype('float64'))
         scaled_df = pd.DataFrame(scaled_df, columns=['Open', 'High', 'Low',
                                                      'Close', 'Volume BTC', 'Volume USD'])
 
@@ -58,7 +58,8 @@ class BitcoinTradingEnv(gym.Env):
 
         obs = np.insert(obs, len(obs), forecast.values.ravel(), axis=0)
 
-        scaled_history = self.scaler.fit_transform(self.account_history)
+        scaled_history = self.scaler.fit_transform(
+            self.account_history.astype('float64'))
 
         obs = np.insert(
             obs, len(obs), scaled_history[:, self.current_step], axis=0)
@@ -114,7 +115,7 @@ class BitcoinTradingEnv(gym.Env):
             [cost],
             [btc_sold],
             [sales]
-        ], axis=1).astype('float64')
+        ], axis=1)
 
     def reset(self):
         self.balance = self.initial_balance
