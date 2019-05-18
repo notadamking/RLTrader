@@ -20,6 +20,7 @@ class BitcoinTradingGraph:
 
     def __init__(self, df, title=None):
         self.df = df
+        self.df['Date'] = self.df['Date'].str.replace("-", "").astype(int)
         self.net_worths = np.zeros(len(df))
 
         # Create a figure on screen and set the title
@@ -57,7 +58,7 @@ class BitcoinTradingGraph:
         legend = self.net_worth_ax.legend(loc=2, ncol=2, prop={'size': 8})
         legend.get_frame().set_alpha(0.4)
 
-        last_date = self.df['Timestamp'].values[current_step]
+        last_date = self.df['Date'].values[current_step]
         last_net_worth = self.net_worths[current_step]
 
         # Annotate the current net worth on the net worth graph
@@ -83,7 +84,7 @@ class BitcoinTradingGraph:
         # Plot price using candlestick graph from mpl_finance
         candlestick(self.price_ax, candlesticks, width=2)
 
-        last_date = self.df['Timestamp'].values[current_step]
+        last_date = self.df['Date'].values[current_step]
         last_close = self.df['Close'].values[current_step]
         last_high = self.df['High'].values[current_step]
 
@@ -103,7 +104,7 @@ class BitcoinTradingGraph:
     def _render_volume(self, current_step, net_worth, step_range, dates):
         self.volume_ax.clear()
 
-        volume = np.array(self.df['Volume_(BTC)'].values[step_range])
+        volume = np.array(self.df['Volume BTC'].values[step_range])
 
         pos = self.df['Open'].values[step_range] - \
             self.df['Close'].values[step_range] < 0
@@ -119,7 +120,7 @@ class BitcoinTradingGraph:
     def _render_trades(self, current_step, trades, step_range):
         for trade in trades:
             if trade['step'] in step_range:
-                date = self.df['Timestamp'].values[trade['step']]
+                date = self.df['Date'].values[trade['step']]
                 close = self.df['Close'].values[trade['step']]
                 high = self.df['High'].values[trade['step']]
                 low = self.df['Low'].values[trade['step']]
@@ -146,7 +147,7 @@ class BitcoinTradingGraph:
 
         window_start = max(current_step - window_size, 0)
         step_range = range(window_start, current_step + 1)
-        dates = self.df['Timestamp'].values[step_range]
+        dates = self.df['Date'].values[step_range]
 
         self._render_net_worth(current_step, net_worth, step_range, dates)
         self._render_price(current_step, net_worth, step_range, dates)
@@ -154,7 +155,7 @@ class BitcoinTradingGraph:
         self._render_trades(current_step, trades, step_range)
 
         date_labels = np.array([datetime.utcfromtimestamp(x).strftime(
-            '%Y-%m-%d %H:%M') for x in self.df['Timestamp'].values[step_range]])
+            '%Y-%m-%d %H:%M') for x in self.df['Date'].values[step_range]])
 
         self.price_ax.set_xticklabels(
             date_labels, rotation=45, horizontalalignment='right')
