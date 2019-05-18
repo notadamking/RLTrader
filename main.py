@@ -16,12 +16,10 @@ train_len = int(len(df)) - test_len
 train_df = df[:train_len]
 test_df = df[train_len:]
 
-# n_procs = 4
 train_env = DummyVecEnv([lambda: BitcoinTradingEnv(train_df)])
 
 model = PPO2(MlpLstmPolicy, train_env, verbose=1, nminibatches=1,
              tensorboard_log="./tensorboard")
-
 model.learn(total_timesteps=train_len)
 
 test_env = DummyVecEnv([lambda: BitcoinTradingEnv(test_df)])

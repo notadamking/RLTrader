@@ -1,4 +1,5 @@
 import gym
+import logging
 import pandas as pd
 import numpy as np
 from gym import spaces
@@ -6,8 +7,11 @@ from sklearn import preprocessing
 from fbprophet import Prophet
 
 from render.BitcoinTradingGraph import BitcoinTradingGraph
+from util.stationarization import log_and_difference
 from util.indicators import add_indicators
 from util.suppress_stan import suppress_stdout_stderr
+
+logging.getLogger('fbprophet').setLevel(logging.WARNING)
 
 
 class BitcoinTradingEnv(gym.Env):
@@ -23,10 +27,12 @@ class BitcoinTradingEnv(gym.Env):
         self.commission = commission
 
         self.df = df.fillna(method='bfill')
-        self.df, n_indicators = add_indicators(self.df.reset_index())
+        self.df = add_indicators(self.df.reset_index())
+        self.stationary_df = log_and_difference(
+            self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
         self.n_forecast_periods = kwargs.get('n_forecast_periods', 10)
-        self.obs_shape = (1, 11 + n_indicators +
+        self.obs_shape = (1, 5 + len(self.df.columns) - 2 +
                           (3 * self.n_forecast_periods))
 
         # Actions of the format Buy 1/4, Sell 3/4, Hold (amount ignored), etc.
@@ -37,15 +43,16 @@ class BitcoinTradingEnv(gym.Env):
             low=0, high=1, shape=self.obs_shape, dtype=np.float16)
 
     def _next_observation(self):
-        scaled_df = self.df[['Open', 'High', 'Low',
-                             'Close', 'Volume BTC', 'Volume USD']].values[:self.current_step + 2]
-        scaled_df = self.scaler.fit_transform(scaled_df.astype('float64'))
-        scaled_df = pd.DataFrame(scaled_df, columns=['Open', 'High', 'Low',
-                                                     'Close', 'Volume BTC', 'Volume USD'])
+        features = self.stationary_df[self.stationary_df.columns.difference([
+            'index', 'Date'])]
 
-        obs = scaled_df.values[self.current_step].astype('float16')
+        scaled = features[:self.current_step + 2].values
+        scaled = self.scaler.fit_transform(scaled.astype('float64'))
+        scaled = pd.DataFrame(scaled, columns=features.columns)
 
-        past_df = self.df[['Date', 'Close']][:self.current_step + 2].copy().rename(
+        obs = scaled.values[self.current_step]
+
+        past_df = self.stationary_df[['Date', 'Close']][:self.current_step + 2].copy().rename(
             index=str, columns={'Date': 'ds', 'Close': 'y'})
 
         with suppress_stdout_stderr():
@@ -64,7 +71,7 @@ class BitcoinTradingEnv(gym.Env):
         obs = np.insert(
             obs, len(obs), scaled_history[:, self.current_step], axis=0)
 
-        obs = np.reshape(obs, self.obs_shape)
+        obs = np.reshape(obs.astype('float16'), self.obs_shape)
 
         return obs
 
@@ -145,7 +152,8 @@ class BitcoinTradingEnv(gym.Env):
 
         obs = self._next_observation()
         reward = self.net_worth - prev_net_worth
-        done = self.net_worth <= 0 or self.current_step == len(self.df) - 1
+        done = self.net_worth < self.initial_balance / \
+            10 or self.current_step == len(self.df) - 1
 
         return obs, reward, done, {}
 

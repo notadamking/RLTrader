@@ -12,10 +12,8 @@ import pandas as pd
 import numpy as np
 
 import optuna
-from optuna.pruners import SuccessiveHalvingPruner
-from optuna.samplers import TPESampler
 
-from stable_baselines.common.policies import LstmPolicy, MlpLnLstmPolicy
+from stable_baselines.common.policies import MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import ACKTR, PPO2
 
@@ -31,11 +29,6 @@ n_timesteps = 5000
 n_test_episodes = 5
 # number of time steps to run before evaluating for pruning
 evaluation_interval = int(n_timesteps / 20)
-# sample using Tree-structured Parzen Estimators
-sampler = TPESampler(n_startup_trials=1)  # TPESampler(n_startup_trials=5)
-# prune by continously halving on each prune
-pruner = SuccessiveHalvingPruner(
-    min_resource=1, reduction_factor=4, min_early_stopping_rate=0)
 
 df = pd.read_csv('./data/coinbase_daily.csv')
 df = df.drop(['Symbol'], axis=1)
@@ -123,7 +116,7 @@ def learn_callback(_locals, _globals):
 
 def optimize_agent(trial):
     agent = PPO2
-    policy = MlpLnLstmPolicy
+    policy = MlpLstmPolicy
 
     if agent == ACKTR:
         params = optimize_acktr(trial)
@@ -166,7 +159,7 @@ def optimize_agent(trial):
 
 def optimize():
     study = optuna.create_study(
-        study_name='optimal_ppo2', sampler=sampler, pruner=pruner, storage='sqlite:///agents.db', load_if_exists=True)
+        study_name='optimal_ppo2', storage='sqlite:///agents.db', load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)

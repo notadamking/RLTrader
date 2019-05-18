@@ -2,8 +2,6 @@ import ta
 
 
 def add_indicators(df):
-    prev_len = len(df)
-
     df['RSI'] = ta.rsi(df["Close"])
     df['MFI'] = ta.money_flow_index(
         df["High"], df["Low"], df["Close"], df["Volume BTC"])
@@ -80,4 +78,4 @@ def add_indicators(df):
 
     df.fillna(method='bfill', inplace=True)
 
-    return df, len(df) - prev_len
+    return df

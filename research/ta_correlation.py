@@ -3,15 +3,14 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import ta
 
-df = pd.read_csv('./data/bitstamp.csv')
-df = df.dropna().reset_index().sort_values('Timestamp')
-df = df[-1000000:]
+df = pd.read_csv('./data/coinbase_daily.csv')
+df = df.dropna().reset_index().sort_values('Date')
 
 ta_df = pd.DataFrame()
 
 ta_df['RSI'] = ta.rsi(df["Close"])
 ta_df['MFI'] = ta.money_flow_index(
-    df["High"], df["Low"], df["Close"], df["Volume_(BTC)"])
+    df["High"], df["Low"], df["Close"], df["Volume BTC"])
 ta_df['TSI'] = ta.tsi(df["Close"])
 ta_df['UO'] = ta.uo(df["High"], df["Low"], df["Close"])
 ta_df['Stoch'] = ta.stoch(df["High"], df["Low"], df["Close"])
@@ -88,26 +87,26 @@ ta_df['DCLI'] = ta.donchian_channel_lband_indicator(df["Close"])
 ta_df['ADI'] = ta.acc_dist_index(df["High"],
                                  df["Low"],
                                  df["Close"],
-                                 df["Volume_(BTC)"])
+                                 df["Volume BTC"])
 ta_df['OBV'] = ta.on_balance_volume(df["Close"],
-                                    df["Volume_(BTC)"])
+                                    df["Volume BTC"])
 ta_df['OBVM'] = ta.on_balance_volume_mean(
     df["Close"],
-    df["Volume_(BTC)"])
+    df["Volume BTC"])
 ta_df['CMF'] = ta.chaikin_money_flow(df["High"],
                                      df["Low"],
                                      df["Close"],
-                                     df["Volume_(BTC)"])
+                                     df["Volume BTC"])
 ta_df['FI'] = ta.force_index(df["Close"],
-                             df["Volume_(BTC)"])
+                             df["Volume BTC"])
 ta_df['EM'] = ta.ease_of_movement(df["High"],
                                   df["Low"],
                                   df["Close"],
-                                  df["Volume_(BTC)"])
+                                  df["Volume BTC"])
 ta_df['VPT'] = ta.volume_price_trend(df["Close"],
-                                     df["Volume_(BTC)"])
+                                     df["Volume BTC"])
 ta_df['NVI'] = ta.negative_volume_index(df["Close"],
-                                        df["Volume_(BTC)"])
+                                        df["Volume BTC"])
 
 ta_df['DR'] = ta.daily_return(df["Close"])
 ta_df['DLR'] = ta.daily_log_return(df["Close"])
