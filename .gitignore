@@ -1,4 +1,4 @@
 .vscode
-data
+data/bitstamp.csv
 tensorboard
 **/__pycache__
