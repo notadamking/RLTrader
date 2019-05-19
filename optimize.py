@@ -39,7 +39,7 @@ def optimize_envs(trial):
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
     }
 
-    df = pd.read_csv('./data/coinbase_daily.csv')
+    df = pd.read_csv('./data/coinbase_hourly.csv')
     df = df.drop(['Symbol'], axis=1)
 
     test_len = int(len(df) * 0.2)
@@ -48,8 +48,10 @@ def optimize_envs(trial):
     train_df = df[:train_len]
     test_df = df[train_len:]
 
-    train_env = DummyVecEnv([lambda: BitcoinTradingEnv(train_df, **params)])
-    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(test_df, **params)])
+    train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+        train_df, reward_func='profit', **params)])
+    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+        test_df, reward_func='profit', **params)])
 
     return train_env, test_env
 
@@ -58,7 +60,7 @@ def optimize_acktr(trial):
     params = {
         'n_steps': int(trial.suggest_loguniform('n_steps', 2, 256)),
         'gamma': trial.suggest_uniform('gamma', 0.9, 0.9999),
-        'learning_rate': trial.suggest_loguniform('lr', 1e-5, 1.),
+        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
         'lr_schedule': trial.suggest_categorical('lr_schedule', ['linear', 'constant',  'double_linear_con', 'middle_drop', 'double_middle_drop']),
         'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
         'vf_coef': trial.suggest_uniform('vf_coef', 0., 1.)
@@ -71,11 +73,11 @@ def optimize_ppo2(trial):
     params = {
         'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
         'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
-        'learning_rate': trial.suggest_loguniform('lr', 1e-5, 1.),
+        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
         'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
         'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.4),
         'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
-        'lam': trial.suggest_uniform('lamdba', 0.8, 1.)
+        'lam': trial.suggest_uniform('lam', 0.8, 1.)
     }
 
     return params
@@ -174,7 +176,7 @@ def optimize_agent(trial):
 
 def optimize():
     study = optuna.create_study(
-        study_name='optimal_ppo2', storage='sqlite:///agents.db', load_if_exists=True)
+        study_name='optimize_profit', storage='sqlite:///agents.db', load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)
