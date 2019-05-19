@@ -8,10 +8,10 @@ Source: https://github.com/araffin/rl-baselines-zoo/blob/master/utils/hyperparam
 
 '''
 
+import optuna
+
 import pandas as pd
 import numpy as np
-
-import optuna
 
 from stable_baselines.common.policies import MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -24,18 +24,18 @@ n_jobs = 4
 # maximum number of trials for finding the best hyperparams
 n_trials = 20
 # maximum number of timesteps per trial
-n_timesteps = 5000
+n_timesteps = 200
 # number of test episodes per trial
-n_test_episodes = 5
+n_test_episodes = 1
 # number of time steps to run before evaluating for pruning
-evaluation_interval = int(n_timesteps / 20)
+evaluation_interval = 2
 
-optuna.logging.set_verbosity(optuna.logging.ERROR)
+# optuna.logging.set_verbosity(optuna.logging.ERROR)
 
 
 def optimize_envs(trial):
     params = {
-        'n_forecasts': int(trial.suggest_loguniform('n_forecasts', 1, 100)),
+        'n_forecasts': int(trial.suggest_loguniform('n_forecasts', 4, 100)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
     }
 
@@ -69,7 +69,6 @@ def optimize_acktr(trial):
 
 def optimize_ppo2(trial):
     params = {
-        'nminibatches': 1,
         'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
         'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
         'learning_rate': trial.suggest_loguniform('lr', 1e-5, 1.),
@@ -97,7 +96,7 @@ def learn_callback(_locals, _globals):
         model.last_time_evaluated = 0
         model.eval_idx = 0
 
-    if (model.num_timesteps - model.last_time_evaluated) < evaluation_interval:
+    if model.num_timesteps - model.last_time_evaluated < evaluation_interval:
         return True
 
     model.last_time_evaluated = model.num_timesteps
@@ -131,23 +130,24 @@ def learn_callback(_locals, _globals):
 
 
 def optimize_agent(trial):
-    Agent = PPO2
+    agent = PPO2
     policy = MlpLstmPolicy
-
-    if Agent == ACKTR:
-        params = optimize_acktr(trial)
-    elif Agent == PPO2:
-        params = optimize_ppo2(trial)
-
     train_env, test_env = optimize_envs(trial)
-    model = Agent(policy, train_env, verbose=1,
-                  tensorboard_log="./tensorboard", **params)
+
+    if agent == ACKTR:
+        params = optimize_acktr(trial)
+        model = ACKTR(policy, train_env, verbose=1,
+                      tensorboard_log="./tensorboard", **params)
+    elif agent == PPO2:
+        params = optimize_ppo2(trial)
+        model = PPO2(policy, train_env, verbose=1, nminibatches=1,
+                     tensorboard_log="./tensorboard", **params)
+
     model.test_env = test_env
     model.trial = trial
 
     try:
         model.learn(n_timesteps, callback=learn_callback)
-
         model.env.close()
         test_env.close()
     except AssertionError:
@@ -162,8 +162,6 @@ def optimize_agent(trial):
     if hasattr(model, 'is_pruned'):
         is_pruned = model.is_pruned  # pylint: disable=no-member
         cost = -1 * model.last_mean_test_reward  # pylint: disable=no-member
-
-        print(cost)
 
     del model.env, model.test_env
     del model
