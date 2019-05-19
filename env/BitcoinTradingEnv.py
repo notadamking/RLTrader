@@ -66,8 +66,7 @@ class BitcoinTradingEnv(gym.Env):
         scaled_history = self.scaler.fit_transform(
             self.account_history.astype('float64'))
 
-        obs = np.insert(
-            obs, len(obs), scaled_history[:, self.current_step], axis=0)
+        obs = np.insert(obs, len(obs), scaled_history[:, -1], axis=0)
 
         obs = np.reshape(obs.astype('float16'), self.obs_shape)
 
@@ -145,7 +144,7 @@ class BitcoinTradingEnv(gym.Env):
         obs = self._next_observation()
         reward = self.net_worth - prev_net_worth
         done = self.net_worth < self.initial_balance / \
-            10 or self.current_step == len(self.df) - self.n_forecasts
+            10 or self.current_step == len(self.df) - self.n_forecasts - 1
 
         return obs, reward, done, {}
 

@@ -17,6 +17,7 @@ def log_and_difference(df, columns):
     transformed_df = df.copy()
 
     for column in columns:
+        transformed_df.loc[df[column] == 0] = 1E-10
         transformed_df[column] = np.log(
             transformed_df[column]) - np.log(transformed_df[column]).shift(1)
 

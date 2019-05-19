@@ -22,7 +22,7 @@ from env.BitcoinTradingEnv import BitcoinTradingEnv
 # number of parallel jobs
 n_jobs = 4
 # maximum number of trials for finding the best hyperparams
-n_trials = 10
+n_trials = 20
 # maximum number of timesteps per trial
 n_timesteps = 5000
 # number of test episodes per trial
@@ -30,21 +30,32 @@ n_test_episodes = 5
 # number of time steps to run before evaluating for pruning
 evaluation_interval = int(n_timesteps / 20)
 
-df = pd.read_csv('./data/coinbase_daily.csv')
-df = df.drop(['Symbol'], axis=1)
+optuna.logging.set_verbosity(optuna.logging.ERROR)
 
-test_len = int(len(df) * 0.2)
-train_len = int(len(df)) - test_len
 
-train_df = df[:train_len]
-test_df = df[train_len:]
+def optimize_envs(trial):
+    params = {
+        'n_forecasts': int(trial.suggest_loguniform('n_forecasts', 1, 100)),
+        'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
+    }
 
-train_env = DummyVecEnv([lambda: BitcoinTradingEnv(train_df)])
-test_env = DummyVecEnv([lambda: BitcoinTradingEnv(test_df)])
+    df = pd.read_csv('./data/coinbase_daily.csv')
+    df = df.drop(['Symbol'], axis=1)
+
+    test_len = int(len(df) * 0.2)
+    train_len = int(len(df)) - test_len
+
+    train_df = df[:train_len]
+    test_df = df[train_len:]
+
+    train_env = DummyVecEnv([lambda: BitcoinTradingEnv(train_df, **params)])
+    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(test_df, **params)])
+
+    return train_env, test_env
 
 
 def optimize_acktr(trial):
-    return {
+    params = {
         'n_steps': int(trial.suggest_loguniform('n_steps', 2, 256)),
         'gamma': trial.suggest_uniform('gamma', 0.9, 0.9999),
         'learning_rate': trial.suggest_loguniform('lr', 1e-5, 1.),
@@ -53,9 +64,12 @@ def optimize_acktr(trial):
         'vf_coef': trial.suggest_uniform('vf_coef', 0., 1.)
     }
 
+    return params
+
 
 def optimize_ppo2(trial):
-    return {
+    params = {
+        'nminibatches': 1,
         'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
         'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
         'learning_rate': trial.suggest_loguniform('lr', 1e-5, 1.),
@@ -64,6 +78,8 @@ def optimize_ppo2(trial):
         'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
         'lam': trial.suggest_uniform('lamdba', 0.8, 1.)
     }
+
+    return params
 
 
 def learn_callback(_locals, _globals):
@@ -115,18 +131,17 @@ def learn_callback(_locals, _globals):
 
 
 def optimize_agent(trial):
-    agent = PPO2
+    Agent = PPO2
     policy = MlpLstmPolicy
 
-    if agent == ACKTR:
+    if Agent == ACKTR:
         params = optimize_acktr(trial)
-        model = ACKTR(policy, train_env, verbose=1,
-                      tensorboard_log="./tensorboard", **params)
-    elif agent == PPO2:
+    elif Agent == PPO2:
         params = optimize_ppo2(trial)
-        model = PPO2(policy, train_env, verbose=1, nminibatches=1,
-                     tensorboard_log="./tensorboard", **params)
 
+    train_env, test_env = optimize_envs(trial)
+    model = Agent(policy, train_env, verbose=1,
+                  tensorboard_log="./tensorboard", **params)
     model.test_env = test_env
     model.trial = trial
 
@@ -147,6 +162,8 @@ def optimize_agent(trial):
     if hasattr(model, 'is_pruned'):
         is_pruned = model.is_pruned  # pylint: disable=no-member
         cost = -1 * model.last_mean_test_reward  # pylint: disable=no-member
+
+        print(cost)
 
     del model.env, model.test_env
     del model
