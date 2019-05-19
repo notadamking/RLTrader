@@ -1,4 +1,5 @@
 .vscode
+agents.db
 data/bitstamp.csv
 tensorboard
 **/__pycache__

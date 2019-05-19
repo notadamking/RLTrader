@@ -48,7 +48,7 @@ class BitcoinTradingEnv(gym.Env):
         features = self.stationary_df[self.stationary_df.columns.difference([
             'index', 'Date'])]
 
-        scaled = features[:self.current_step + self.n_forecasts].values
+        scaled = features[:self.current_step + self.n_forecasts + 1].values
         scaled[abs(scaled) == inf] = 0
         scaled = scaler.fit_transform(scaled.astype('float64'))
         scaled = pd.DataFrame(scaled, columns=features.columns)
@@ -56,7 +56,7 @@ class BitcoinTradingEnv(gym.Env):
         obs = scaled.values[-1]
 
         past_df = self.stationary_df['Close'][:
-                                              self.current_step + self.n_forecasts]
+                                              self.current_step + self.n_forecasts + 1]
         forecast_model = SARIMAX(past_df.values)
         model_fit = forecast_model.fit(method='bfgs', disp=False)
         forecast = model_fit.get_forecast(
@@ -167,7 +167,7 @@ class BitcoinTradingEnv(gym.Env):
 
         return obs, reward, done, {}
 
-    def render(self, mode='human', **kwargs):
+    def render(self, mode='human'):
         if mode == 'system':
             print('Price: ' + str(self._current_price()))
             print(
@@ -178,11 +178,10 @@ class BitcoinTradingEnv(gym.Env):
 
         elif mode == 'human':
             if self.viewer is None:
-                self.viewer = BitcoinTradingGraph(
-                    self.df, kwargs.get('title', None))
+                self.viewer = BitcoinTradingGraph(self.df)
 
             self.viewer.render(self.current_step,
-                               self.net_worths[-1], self.trades)
+                               self.net_worths, self.trades)
 
     def close(self):
         if self.viewer is not None:

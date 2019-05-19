@@ -24,7 +24,7 @@ n_jobs = 4
 # maximum number of trials for finding the best hyperparams
 n_trials = 20
 # maximum number of timesteps per trial
-n_timesteps = 200
+n_timesteps = 100
 # number of test episodes per trial
 n_test_episodes = 1
 # number of time steps to run before evaluating for pruning
