@@ -61,8 +61,7 @@ class BitcoinTradingEnv(gym.Env):
             steps=self.n_forecasts, alpha=(1 - self.confidence_interval))
 
         obs = np.insert(obs, len(obs), forecast.predicted_mean, axis=0)
-        obs = np.insert(
-            obs, len(obs), forecast.confidence_interval().flatten(), axis=0)
+        obs = np.insert(obs, len(obs), forecast.conf_int().flatten(), axis=0)
 
         scaled_history = self.scaler.fit_transform(
             self.account_history.astype('float64'))
