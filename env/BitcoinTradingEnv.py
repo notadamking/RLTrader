@@ -30,11 +30,9 @@ class BitcoinTradingEnv(gym.Env):
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
         self.n_forecasts = kwargs.get('n_forecasts', 10)
-        self.arma_alpha = kwargs.get('arma_alpha', 0.05)
+        self.confidence_interval = kwargs.get('confidence_interval', 0.95)
         self.obs_shape = (1, 5 + len(self.df.columns) -
                           2 + (self.n_forecasts * 3))
-
-        self.min_observations = self.n_forecasts
 
         # Actions of the format Buy 1/4, Sell 3/4, Hold (amount ignored), etc.
         self.action_space = spaces.Discrete(12)
@@ -47,7 +45,7 @@ class BitcoinTradingEnv(gym.Env):
         features = self.stationary_df[self.stationary_df.columns.difference([
             'index', 'Date'])]
 
-        scaled = features[:self.current_step + self.min_observations].values
+        scaled = features[:self.current_step + self.n_forecasts].values
         scaled[abs(scaled) == inf] = 0
         scaled = self.scaler.fit_transform(scaled.astype('float64'))
         scaled = pd.DataFrame(scaled, columns=features.columns)
@@ -55,15 +53,16 @@ class BitcoinTradingEnv(gym.Env):
         obs = scaled.values[-1]
 
         past_df = self.stationary_df['Close'][:
-                                              self.current_step + self.min_observations]
+                                              self.current_step + self.n_forecasts]
         forecast_model = SARIMAX(past_df.values)
         model_fit = forecast_model.fit(
             method='bfgs', disp=False)
         forecast = model_fit.get_forecast(
-            steps=self.n_forecasts, alpha=self.arma_alpha)
+            steps=self.n_forecasts, alpha=(1 - self.confidence_interval))
 
         obs = np.insert(obs, len(obs), forecast.predicted_mean, axis=0)
-        obs = np.insert(obs, len(obs), forecast.conf_int().flatten(), axis=0)
+        obs = np.insert(
+            obs, len(obs), forecast.confidence_interval().flatten(), axis=0)
 
         scaled_history = self.scaler.fit_transform(
             self.account_history.astype('float64'))
@@ -76,7 +75,7 @@ class BitcoinTradingEnv(gym.Env):
         return obs
 
     def _get_current_price(self):
-        return self.df['Close'].values[self.current_step + self.min_observations]
+        return self.df['Close'].values[self.current_step + self.n_forecasts]
 
     def _take_action(self, action, current_price):
         action_type = int(action / 4)
@@ -147,7 +146,7 @@ class BitcoinTradingEnv(gym.Env):
         obs = self._next_observation()
         reward = self.net_worth - prev_net_worth
         done = self.net_worth < self.initial_balance / \
-            10 or self.current_step == len(self.df) - self.min_observations
+            10 or self.current_step == len(self.df) - self.n_forecasts
 
         return obs, reward, done, {}
 
