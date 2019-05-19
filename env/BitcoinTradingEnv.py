@@ -2,16 +2,14 @@ import gym
 import logging
 import pandas as pd
 import numpy as np
+from numpy import inf
 from gym import spaces
 from sklearn import preprocessing
-from fbprophet import Prophet
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 from render.BitcoinTradingGraph import BitcoinTradingGraph
 from util.stationarization import log_and_difference
 from util.indicators import add_indicators
-from util.suppress_stan import suppress_stdout_stderr
-
-logging.getLogger('fbprophet').setLevel(logging.WARNING)
 
 
 class BitcoinTradingEnv(gym.Env):
@@ -31,9 +29,12 @@ class BitcoinTradingEnv(gym.Env):
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
-        self.n_forecast_periods = kwargs.get('n_forecast_periods', 10)
-        self.obs_shape = (1, 5 + len(self.df.columns) - 2 +
-                          (3 * self.n_forecast_periods))
+        self.n_forecasts = kwargs.get('n_forecasts', 10)
+        self.arma_alpha = kwargs.get('arma_alpha', 0.05)
+        self.obs_shape = (1, 5 + len(self.df.columns) -
+                          2 + (self.n_forecasts * 3))
+
+        self.min_observations = self.n_forecasts
 
         # Actions of the format Buy 1/4, Sell 3/4, Hold (amount ignored), etc.
         self.action_space = spaces.Discrete(12)
@@ -46,24 +47,23 @@ class BitcoinTradingEnv(gym.Env):
         features = self.stationary_df[self.stationary_df.columns.difference([
             'index', 'Date'])]
 
-        scaled = features[:self.current_step + 2].values
+        scaled = features[:self.current_step + self.min_observations].values
+        scaled[abs(scaled) == inf] = 0
         scaled = self.scaler.fit_transform(scaled.astype('float64'))
         scaled = pd.DataFrame(scaled, columns=features.columns)
 
-        obs = scaled.values[self.current_step]
+        obs = scaled.values[-1]
 
-        past_df = self.stationary_df[['Date', 'Close']][:self.current_step + 2].copy().rename(
-            index=str, columns={'Date': 'ds', 'Close': 'y'})
+        past_df = self.stationary_df['Close'][:
+                                              self.current_step + self.min_observations]
+        forecast_model = SARIMAX(past_df.values)
+        model_fit = forecast_model.fit(
+            method='bfgs', disp=False)
+        forecast = model_fit.get_forecast(
+            steps=self.n_forecasts, alpha=self.arma_alpha)
 
-        with suppress_stdout_stderr():
-            prophet = Prophet()
-            prophet.fit(past_df, iter=200)
-            future = prophet.make_future_dataframe(
-                periods=self.n_forecast_periods)
-            forecast = prophet.predict(
-                future)[['yhat', 'yhat_lower', 'yhat_upper']][-self.n_forecast_periods:]
-
-        obs = np.insert(obs, len(obs), forecast.values.ravel(), axis=0)
+        obs = np.insert(obs, len(obs), forecast.predicted_mean, axis=0)
+        obs = np.insert(obs, len(obs), forecast.conf_int().flatten(), axis=0)
 
         scaled_history = self.scaler.fit_transform(
             self.account_history.astype('float64'))
@@ -76,7 +76,7 @@ class BitcoinTradingEnv(gym.Env):
         return obs
 
     def _get_current_price(self):
-        return self.df['Close'].values[self.current_step]
+        return self.df['Close'].values[self.current_step + self.min_observations]
 
     def _take_action(self, action, current_price):
         action_type = int(action / 4)
@@ -93,8 +93,6 @@ class BitcoinTradingEnv(gym.Env):
                              price, self.balance / price)
             cost = btc_bought * price
 
-            print('Bought ' + str(btc_bought) + ' BTC for $' + str(cost))
-
             self.btc_held += btc_bought
             self.balance -= cost
         elif action_type == 1:
@@ -102,12 +100,8 @@ class BitcoinTradingEnv(gym.Env):
             btc_sold = self.btc_held * amount
             sales = btc_sold * price
 
-            print('Sold ' + str(btc_sold) + ' BTC for $' + str(sales))
-
             self.btc_held -= btc_sold
             self.balance += sales
-        else:
-            print('Hold')
 
         if btc_sold > 0 or btc_bought > 0:
             self.trades.append({'step': self.current_step,
@@ -153,7 +147,7 @@ class BitcoinTradingEnv(gym.Env):
         obs = self._next_observation()
         reward = self.net_worth - prev_net_worth
         done = self.net_worth < self.initial_balance / \
-            10 or self.current_step == len(self.df) - 1
+            10 or self.current_step == len(self.df) - self.min_observations
 
         return obs, reward, done, {}
 

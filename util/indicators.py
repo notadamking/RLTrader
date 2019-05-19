@@ -55,9 +55,6 @@ def add_indicators(df):
                                   df["Volume BTC"])
     df['OBV'] = ta.on_balance_volume(df["Close"],
                                      df["Volume BTC"])
-    df['OBVM'] = ta.on_balance_volume_mean(
-        df["Close"],
-        df["Volume BTC"])
     df['CMF'] = ta.chaikin_money_flow(df["High"],
                                       df["Low"],
                                       df["Close"],

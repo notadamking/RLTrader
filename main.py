@@ -7,7 +7,7 @@ from stable_baselines import A2C, ACKTR, PPO2
 
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 
-df = pd.read_csv('./data/coinbase_daily.csv')
+df = pd.read_csv('./data/coinbase_hourly.csv')
 df = df.drop(['Symbol'], axis=1)
 
 test_len = int(len(df) * 0.2)
