@@ -131,8 +131,8 @@ def learn_callback(_locals, _globals):
     return True
 
 
-def optimize_agent(trial):
-    agent = PPO2
+def optimize_agent(trial, agent=PPO2):
+    # agent = PPO2
     policy = MlpLstmPolicy
     train_env, test_env = optimize_envs(trial)
 
@@ -179,7 +179,7 @@ def optimize():
         study_name='optimize_profit', storage='sqlite:///agents.db', load_if_exists=True)
 
     try:
-        study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)
+        study.optimize(lambda trial:optimize_agent(trial, agent=PPO2), n_trials=n_trials, n_jobs=n_jobs)
     except KeyboardInterrupt:
         pass
 
