@@ -1,5 +1,5 @@
 
-
+import sys
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -43,13 +43,15 @@ class BitcoinTradingGraph:
         # Show the graph without blocking the rest of the program
         plt.show(block=False)
 
-    def _render_net_worth(self, current_step, net_worths, dates):
+    def _render_net_worth(self, step_range, dates, current_step, net_worths, benchmarks):
         # Clear the frame rendered last step
         self.net_worth_ax.clear()
 
         # Plot net worths
         self.net_worth_ax.plot(
-            dates, net_worths, label='Net Worth', color="g")
+            dates, net_worths[step_range], label='Net Worth', color="g")
+
+        self._render_benchmarks(step_range, dates, benchmarks)
 
         # Show legend, which uses the label we defined for the plot above
         self.net_worth_ax.legend()
@@ -71,12 +73,19 @@ class BitcoinTradingGraph:
         self.net_worth_ax.set_ylim(
             min(net_worths) / 1.25, max(net_worths) * 1.25)
 
-    def _render_price(self, current_step, net_worths, dates):
+    def _render_benchmarks(self, step_range, dates, benchmarks):
+        colors = ['red', 'blue', 'purple', 'orange', 'yellow']
+
+        for i, benchmark in enumerate(benchmarks):
+            self.net_worth_ax.plot(
+                dates, benchmark['values'][step_range], label=benchmark['label'], color=colors[i], alpha=0.3)
+
+    def _render_price(self, step_range, dates, current_step):
         self.price_ax.clear()
 
         # Plot price using candlestick graph from mpl_finance
         self.price_ax.plot(
-            self.df['Time'].values[:current_step + 1], self.df['Close'].values[:current_step + 1], color="black")
+            dates, self.df['Close'].values[step_range], color="black")
 
         last_date = self.df['Time'].values[current_step]
         last_close = self.df['Close'].values[current_step]
@@ -95,20 +104,20 @@ class BitcoinTradingGraph:
         self.price_ax.set_ylim(ylim[0] - (ylim[1] - ylim[0])
                                * VOLUME_CHART_HEIGHT, ylim[1])
 
-    def _render_volume(self, current_step, net_worth, dates):
+    def _render_volume(self, step_range, dates):
         self.volume_ax.clear()
 
-        volume = np.array(self.df['Volume BTC'].values[:current_step + 1])
+        volume = np.array(self.df['Volume BTC'].values[step_range])
 
         self.volume_ax.plot(dates, volume,  color='blue')
-        self.volume_ax.fill_between(dates, volume, color='blue')
+        self.volume_ax.fill_between(dates, volume, color='blue', alpha=0.5)
 
         self.volume_ax.set_ylim(0, max(volume) / VOLUME_CHART_HEIGHT)
         self.volume_ax.yaxis.set_ticks([])
 
-    def _render_trades(self, current_step, trades):
+    def _render_trades(self, step_range, trades):
         for trade in trades:
-            if trade['step'] in range(current_step):
+            if trade['step'] in range(sys.maxsize)[step_range]:
                 date = self.df['Time'].values[trade['step']]
                 close = self.df['Close'].values[trade['step']]
 
@@ -122,21 +131,26 @@ class BitcoinTradingGraph:
                                        size="large",
                                        arrowprops=dict(arrowstyle='simple', facecolor=color))
 
-    def render(self, current_step, net_worths, trades):
+    def render(self, current_step, net_worths, benchmarks, trades, window_size=200):
         net_worth = round(net_worths[-1], 2)
+        initial_net_worth = round(net_worths[0], 2)
         profit_percent = round(
-            (net_worth - net_worths[0]) / net_worths[0] * 100, 2)
+            (net_worth - initial_net_worth) / initial_net_worth * 100, 2)
+
         self.fig.suptitle(
             'Net worth: $' + str(net_worth) + ' | Profit: ' + str(profit_percent) + '%')
 
-        dates = self.df['Time'].values[:current_step + 1]
+        window_start = max(current_step - window_size, 0)
+        step_range = slice(window_start, current_step + 1)
+        dates = self.df['Time'].values[step_range]
 
-        self._render_net_worth(current_step, net_worths, dates)
-        self._render_price(current_step, net_worths, dates)
-        self._render_volume(current_step, net_worths, dates)
-        self._render_trades(current_step, trades)
+        self._render_net_worth(
+            step_range, dates, current_step, net_worths, benchmarks)
+        self._render_price(step_range, dates, current_step)
+        self._render_volume(step_range, dates)
+        self._render_trades(step_range, trades)
 
-        date_labels = self.df['Date'].values[:current_step + 1]
+        date_labels = self.df['Date'].values[step_range]
 
         self.price_ax.set_xticklabels(
             date_labels, rotation=45, horizontalalignment='right')

@@ -22,42 +22,23 @@ from env.BitcoinTradingEnv import BitcoinTradingEnv
 # number of parallel jobs
 n_jobs = 4
 # maximum number of trials for finding the best hyperparams
-n_trials = 20
-# maximum number of timesteps per trial
-n_timesteps = 100
+n_trials = 1000
 # number of test episodes per trial
-n_test_episodes = 1
-# number of time steps to run before evaluating for pruning
-evaluation_interval = 2
-
-# optuna.logging.set_verbosity(optuna.logging.ERROR)
+n_test_episodes = 5
+# number of evaluations for pruning
+n_evaluations = 20
 
 
 def optimize_envs(trial):
-    params = {
-        'n_forecasts': int(trial.suggest_loguniform('n_forecasts', 4, 100)),
+    return {
+        'reward_len': int(trial.suggest_loguniform('reward_len', 1, 1000)),
+        'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
     }
 
-    df = pd.read_csv('./data/coinbase_hourly.csv')
-    df = df.drop(['Symbol'], axis=1)
-
-    test_len = int(len(df) * 0.2)
-    train_len = int(len(df)) - test_len
-
-    train_df = df[:train_len]
-    test_df = df[train_len:]
-
-    train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-        train_df, reward_func='profit', **params)])
-    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-        test_df, reward_func='profit', **params)])
-
-    return train_env, test_env
-
 
 def optimize_acktr(trial):
-    params = {
+    return {
         'n_steps': int(trial.suggest_loguniform('n_steps', 2, 256)),
         'gamma': trial.suggest_uniform('gamma', 0.9, 0.9999),
         'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
@@ -66,11 +47,9 @@ def optimize_acktr(trial):
         'vf_coef': trial.suggest_uniform('vf_coef', 0., 1.)
     }
 
-    return params
-
 
 def optimize_ppo2(trial):
-    params = {
+    return {
         'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
         'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
         'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
@@ -79,8 +58,6 @@ def optimize_ppo2(trial):
         'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
         'lam': trial.suggest_uniform('lam', 0.8, 1.)
     }
-
-    return params
 
 
 def learn_callback(_locals, _globals):
@@ -98,10 +75,12 @@ def learn_callback(_locals, _globals):
         model.last_time_evaluated = 0
         model.eval_idx = 0
 
-    if model.num_timesteps - model.last_time_evaluated < evaluation_interval:
+    evaluation_interval = model.n_timesteps / n_evaluations
+
+    if model.n_timesteps - model.last_time_evaluated < evaluation_interval:
         return True
 
-    model.last_time_evaluated = model.num_timesteps
+    model.last_time_evaluated = model.n_timesteps
 
     rewards = []
     n_episodes, reward_sum = 0, 0.0
@@ -132,9 +111,20 @@ def learn_callback(_locals, _globals):
 
 
 def optimize_agent(trial):
-    agent = PPO2
-    policy = MlpLstmPolicy
-    train_env, test_env = optimize_envs(trial)
+    agent, policy = PPO2, MlpLstmPolicy
+
+    df = pd.read_csv('./data/coinbase_hourly.csv')
+    df = df.drop(['Symbol'], axis=1)
+
+    train_len = int(len(df)) - int(len(df) * 0.2)
+    train_df, test_df = df[:train_len], df[train_len:]
+
+    env_params = optimize_envs(trial)
+
+    train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+        train_df, reward_func='profit', **env_params)])
+    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+        test_df, reward_func='profit', **env_params)])
 
     if agent == ACKTR:
         params = optimize_acktr(trial)
@@ -147,9 +137,10 @@ def optimize_agent(trial):
 
     model.test_env = test_env
     model.trial = trial
+    model.n_timesteps = len(train_df)
 
     try:
-        model.learn(n_timesteps, callback=learn_callback)
+        model.learn(model.n_timesteps, callback=learn_callback)
         model.env.close()
         test_env.close()
     except AssertionError:
@@ -176,7 +167,7 @@ def optimize_agent(trial):
 
 def optimize():
     study = optuna.create_study(
-        study_name='optimize_profit', storage='sqlite:///agents.db', load_if_exists=True)
+        study_name='optimize_profit', storage='sqlite:///params.db', load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)

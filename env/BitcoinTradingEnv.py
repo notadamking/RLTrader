@@ -6,19 +6,20 @@ from numpy import inf
 from gym import spaces
 from sklearn import preprocessing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from empyrical import sortino_ratio, calmar_ratio, omega_ratio
 
 from render.BitcoinTradingGraph import BitcoinTradingGraph
-from util.risk_adjusted_returns import sortino_ratio, sterling_ratio, omega_ratio
 from util.stationarization import log_and_difference
+from util.benchmarks import buy_and_hodl, rsi_divergence, sma_crossover
 from util.indicators import add_indicators
 
 
 class BitcoinTradingEnv(gym.Env):
-    """A Bitcoin trading environment for OpenAI gym"""
+    '''A Bitcoin trading environment for OpenAI gym'''
     metadata = {'render.modes': ['human', 'system', 'none']}
     viewer = None
 
-    def __init__(self, df, initial_balance=10000, commission=0.0003, reward_func='sortino', **kwargs):
+    def __init__(self, df, initial_balance=10000, commission=0.0025, reward_func='sortino', **kwargs):
         super(BitcoinTradingEnv, self).__init__()
 
         self.initial_balance = initial_balance
@@ -30,10 +31,26 @@ class BitcoinTradingEnv(gym.Env):
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
-        self.n_forecasts = kwargs.get('n_forecasts', 10)
+        self.benchmarks = [
+            {
+                'label': 'Buy and HODL',
+                'values': buy_and_hodl(self.df['Close'], initial_balance, commission)
+            },
+            {
+                'label': 'RSI Divergence',
+                'values': rsi_divergence(self.df['Close'], initial_balance, commission)
+            },
+            {
+                'label': 'SMA Crossover',
+                'values': sma_crossover(self.df['Close'], initial_balance, commission)
+            }
+        ]
+
+        self.reward_len = kwargs.get('reward_len', 10)
+        self.forecast_len = kwargs.get('forecast_len', 10)
         self.confidence_interval = kwargs.get('confidence_interval', 0.95)
         self.obs_shape = (1, 5 + len(self.df.columns) -
-                          2 + (self.n_forecasts * 3))
+                          2 + (self.forecast_len * 3))
 
         # Actions of the format Buy 1/4, Sell 3/4, Hold (amount ignored), etc.
         self.action_space = spaces.Discrete(12)
@@ -48,7 +65,7 @@ class BitcoinTradingEnv(gym.Env):
         features = self.stationary_df[self.stationary_df.columns.difference([
             'index', 'Date'])]
 
-        scaled = features[:self.current_step + self.n_forecasts + 1].values
+        scaled = features[:self.current_step + self.forecast_len + 1].values
         scaled[abs(scaled) == inf] = 0
         scaled = scaler.fit_transform(scaled.astype('float64'))
         scaled = pd.DataFrame(scaled, columns=features.columns)
@@ -56,11 +73,11 @@ class BitcoinTradingEnv(gym.Env):
         obs = scaled.values[-1]
 
         past_df = self.stationary_df['Close'][:
-                                              self.current_step + self.n_forecasts + 1]
-        forecast_model = SARIMAX(past_df.values)
+                                              self.current_step + self.forecast_len + 1]
+        forecast_model = SARIMAX(past_df.values, enforce_stationarity=False)
         model_fit = forecast_model.fit(method='bfgs', disp=False)
         forecast = model_fit.get_forecast(
-            steps=self.n_forecasts, alpha=(1 - self.confidence_interval))
+            steps=self.forecast_len, alpha=(1 - self.confidence_interval))
 
         obs = np.insert(obs, len(obs), forecast.predicted_mean, axis=0)
         obs = np.insert(obs, len(obs), forecast.conf_int().flatten(), axis=0)
@@ -75,7 +92,7 @@ class BitcoinTradingEnv(gym.Env):
         return obs
 
     def _current_price(self):
-        return self.df['Close'].values[self.current_step + self.n_forecasts] + 0.01
+        return self.df['Close'].values[self.current_step + self.forecast_len] + 0.01
 
     def _take_action(self, action):
         current_price = self._current_price()
@@ -106,7 +123,7 @@ class BitcoinTradingEnv(gym.Env):
         if btc_sold > 0 or btc_bought > 0:
             self.trades.append({'step': self.current_step,
                                 'amount': btc_sold if btc_sold > 0 else btc_bought, 'total': sales if btc_sold > 0 else cost,
-                                'type': "sell" if btc_sold > 0 else "buy"})
+                                'type': 'sell' if btc_sold > 0 else 'buy'})
 
         self.net_worths.append(
             self.balance + self.btc_held * current_price)
@@ -120,24 +137,23 @@ class BitcoinTradingEnv(gym.Env):
         ], axis=1)
 
     def _reward(self):
-        returns = np.diff(self.net_worths)
-        benchmark = np.diff(self.df['Close'][self.n_forecasts:self.n_forecasts +
-                                             self.current_step + 1])
+        length = min(self.current_step, self.reward_len)
+        returns = np.diff(self.net_worths)[-length:]
 
         if self.reward_func == 'sortino':
-            reward = sortino_ratio(returns, benchmark)
-        elif self.reward_func == 'sterling':
-            reward = sterling_ratio(returns, benchmark)
+            reward = sortino_ratio(returns)
+        elif self.reward_func == 'calmar':
+            reward = calmar_ratio(returns)
         elif self.reward_func == 'omega':
             reward = omega_ratio(returns)
+        else:
+            reward = self.net_worths[-1] - self.net_worths[-length]
 
-        reward = self.net_worths[-1] - self.net_worths[-2]
-
-        return reward if abs(reward) != inf else 0
+        return reward if abs(reward) != inf and not np.isnan(reward) else 0
 
     def _done(self):
         return self.net_worths[-1] < self.initial_balance / 10 \
-            or self.current_step == len(self.df) - self.n_forecasts - 1
+            or self.current_step == len(self.df) - self.forecast_len - 1
 
     def reset(self):
         self.balance = self.initial_balance
@@ -181,7 +197,7 @@ class BitcoinTradingEnv(gym.Env):
                 self.viewer = BitcoinTradingGraph(self.df)
 
             self.viewer.render(self.current_step,
-                               self.net_worths, self.trades)
+                               self.net_worths, self.benchmarks, self.trades)
 
     def close(self):
         if self.viewer is not None:

@@ -12,20 +12,20 @@ study = optuna.load_study(study_name='optimize_profit',
                           storage='sqlite:///agents.db')
 params = study.best_trial.params
 
-print(params)
+print("Testing PPO2 agent with params:", params)
 
 df = pd.read_csv('./data/coinbase_hourly.csv')
 df = df.drop(['Symbol'], axis=1)
 df = df.sort_values(['Date'])
 
 test_len = int(len(df) * 0.2)
-train_len = 100  # int(len(df)) - test_len
+train_len = int(len(df)) - test_len
 
 train_df = df[:train_len]
 test_df = df[train_len:]
 
 train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    train_df, n_forecasts=int(params['n_forecasts']), confidence_interval=params['confidence_interval'])])
+    train_df, reward_len=int(params['reward_len']), forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
 
 model_params = {
     'n_steps': int(params['n_steps']),
@@ -42,7 +42,7 @@ model = PPO2(MlpLstmPolicy, train_env, verbose=1, nminibatches=1,
 model.learn(total_timesteps=train_len)
 
 test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, n_forecasts=int(params['n_forecasts']), confidence_interval=params['confidence_interval'])])
+    test_df, reward_len=int(params['reward_len']), forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
 
 obs = test_env.reset()
 for i in range(test_len):
