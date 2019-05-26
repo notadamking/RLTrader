@@ -6,4 +6,4 @@ In this article, we've created a profitable cryptocurrency trading agent using d
 
 Data sets: https://www.cryptodatadownload.com/data/northamerican/
 
-If you'd like to learn more about how we created this agent, check out the Medium article: https://medium.com/@notadamking/visualizing-stock-trading-agents-using-matplotlib-and-gym-584c992bc6d4
+If you'd like to learn more about how we created this agent, check out the Medium article: https://towardsdatascience.com/creating-bitcoin-trading-bots-that-dont-lose-money-2e7165fb0b29
