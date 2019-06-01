@@ -1,5 +1,4 @@
 import gym
-import logging
 import pandas as pd
 import numpy as np
 from numpy import inf
@@ -27,7 +26,6 @@ class BitcoinTradingEnv(gym.Env):
         self.reward_func = reward_func
 
         self.df = df.fillna(method='bfill')
-        self.df = add_indicators(self.df.reset_index())
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
@@ -46,10 +44,9 @@ class BitcoinTradingEnv(gym.Env):
             }
         ]
 
-        self.reward_len = kwargs.get('reward_len', 10)
         self.forecast_len = kwargs.get('forecast_len', 10)
         self.confidence_interval = kwargs.get('confidence_interval', 0.95)
-        self.obs_shape = (1, 5 + len(self.df.columns) -
+        self.obs_shape = (1, 6 + len(self.df.columns) -
                           2 + (self.forecast_len * 3))
 
         # Actions of the format Buy 1/4, Sell 3/4, Hold (amount ignored), etc.
@@ -137,23 +134,28 @@ class BitcoinTradingEnv(gym.Env):
         ], axis=1)
 
     def _reward(self):
-        length = min(self.current_step, self.reward_len)
+        length = min(self.current_step, self.forecast_len)
         returns = np.diff(self.net_worths)[-length:]
 
+        if np.count_nonzero(returns) < 1:
+            return 0
+
         if self.reward_func == 'sortino':
-            reward = sortino_ratio(returns)
+            reward = sortino_ratio(
+                returns, annualization=365*24)
         elif self.reward_func == 'calmar':
-            reward = calmar_ratio(returns)
+            reward = calmar_ratio(
+                returns, annualization=365*24)
         elif self.reward_func == 'omega':
-            reward = omega_ratio(returns)
+            reward = omega_ratio(
+                returns, annualization=365*24)
         else:
-            reward = self.net_worths[-1] - self.net_worths[-length]
+            reward = returns[-1]
 
         return reward if abs(reward) != inf and not np.isnan(reward) else 0
 
     def _done(self):
-        return self.net_worths[-1] < self.initial_balance / 10 \
-            or self.current_step == len(self.df) - self.forecast_len - 1
+        return self.net_worths[-1] < self.initial_balance / 10 or self.current_step == len(self.df) - self.forecast_len - 1
 
     def reset(self):
         self.balance = self.initial_balance

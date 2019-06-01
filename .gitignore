@@ -1,5 +1,6 @@
 .vscode
-params.db
 data/bitstamp.csv
 tensorboard
 **/__pycache__
+*.pkl
+*.db

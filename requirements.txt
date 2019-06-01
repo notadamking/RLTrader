@@ -10,3 +10,4 @@ optuna
 ta
 statsmodels
 patsy
+empyrical

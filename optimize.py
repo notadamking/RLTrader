@@ -13,7 +13,7 @@ import optuna
 import pandas as pd
 import numpy as np
 
-from stable_baselines.common.policies import MlpLstmPolicy
+from stable_baselines.common.policies import MlpLnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import ACKTR, PPO2
 
@@ -24,14 +24,20 @@ n_jobs = 4
 # maximum number of trials for finding the best hyperparams
 n_trials = 1000
 # number of test episodes per trial
-n_test_episodes = 5
-# number of evaluations for pruning
-n_evaluations = 20
+n_test_episodes = 3
+# number of evaluations for pruning per trial
+n_evaluations = 4
+
+
+df = pd.read_csv('./data/coinbase_hourly.csv')
+df = df.drop(['Symbol'], axis=1)
+
+train_len = int(len(df)) - int(len(df) * 0.2)
+train_df = df[:train_len]
 
 
 def optimize_envs(trial):
     return {
-        'reward_len': int(trial.suggest_loguniform('reward_len', 1, 1000)),
         'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
     }
@@ -75,9 +81,7 @@ def learn_callback(_locals, _globals):
         model.last_time_evaluated = 0
         model.eval_idx = 0
 
-    evaluation_interval = model.n_timesteps / n_evaluations
-
-    if model.n_timesteps - model.last_time_evaluated < evaluation_interval:
+    if model.n_timesteps - model.last_time_evaluated < model.n_timesteps / n_evaluations or model.n_timesteps >= len(model.train_df):
         return True
 
     model.last_time_evaluated = model.n_timesteps
@@ -85,23 +89,27 @@ def learn_callback(_locals, _globals):
     rewards = []
     n_episodes, reward_sum = 0, 0.0
 
-    obs = model.test_env.reset()
+    test_df = model.train_df.copy()
+
+    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+        test_df[model.n_timesteps:], reward_func='profit', **model.env_params)])
+
+    obs = test_env.reset()
     while n_episodes < n_test_episodes:
         action, _ = model.predict(obs)
-        obs, reward, done, _ = model.test_env.step(action)
+        obs, reward, done, _ = test_env.step(action)
         reward_sum += reward
 
         if done:
             rewards.append(reward_sum)
             reward_sum = 0.0
             n_episodes += 1
-            obs = model.test_env.reset()
+            obs = test_env.reset()
 
-    mean_reward = np.mean(rewards)
-    model.last_mean_test_reward = mean_reward
+    model.last_mean_test_reward = np.mean(rewards) / len(test_df)
     model.eval_idx += 1
 
-    model.trial.report(-1 * mean_reward, model.eval_idx)
+    model.trial.report(-1 * model.last_mean_test_reward, model.eval_idx)
 
     if model.trial.should_prune(model.eval_idx):
         model.is_pruned = True
@@ -111,20 +119,12 @@ def learn_callback(_locals, _globals):
 
 
 def optimize_agent(trial):
-    agent, policy = PPO2, MlpLstmPolicy
-
-    df = pd.read_csv('./data/coinbase_hourly.csv')
-    df = df.drop(['Symbol'], axis=1)
-
-    train_len = int(len(df)) - int(len(df) * 0.2)
-    train_df, test_df = df[:train_len], df[train_len:]
+    agent, policy = PPO2, MlpLnLstmPolicy
 
     env_params = optimize_envs(trial)
 
     train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
         train_df, reward_func='profit', **env_params)])
-    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-        test_df, reward_func='profit', **env_params)])
 
     if agent == ACKTR:
         params = optimize_acktr(trial)
@@ -135,18 +135,16 @@ def optimize_agent(trial):
         model = PPO2(policy, train_env, verbose=1, nminibatches=1,
                      tensorboard_log="./tensorboard", **params)
 
-    model.test_env = test_env
     model.trial = trial
     model.n_timesteps = len(train_df)
+    model.train_df = train_df
+    model.env_params = env_params
 
     try:
         model.learn(model.n_timesteps, callback=learn_callback)
         model.env.close()
-        test_env.close()
     except AssertionError:
-        # Sometimes, random hyperparams can generate NaN
         model.env.close()
-        model.test_env.close()
         raise
 
     is_pruned = False
@@ -156,9 +154,6 @@ def optimize_agent(trial):
         is_pruned = model.is_pruned  # pylint: disable=no-member
         cost = -1 * model.last_mean_test_reward  # pylint: disable=no-member
 
-    del model.env, model.test_env
-    del model
-
     if is_pruned:
         raise optuna.structs.TrialPruned()
 
@@ -167,7 +162,7 @@ def optimize_agent(trial):
 
 def optimize():
     study = optuna.create_study(
-        study_name='optimize_profit', storage='sqlite:///params.db', load_if_exists=True)
+        study_name='ppo2_profit', storage='sqlite:///params.db', load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)

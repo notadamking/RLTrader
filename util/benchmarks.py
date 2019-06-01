@@ -38,7 +38,7 @@ def buy_and_hodl(prices, initial_balance, commission):
     return trade_strategy(prices, initial_balance, commission, signal_fn)
 
 
-def rsi_divergence(prices, initial_balance, commission, period=5):
+def rsi_divergence(prices, initial_balance, commission, period=3):
     rsi = ta.rsi(prices)
 
     def signal_fn(i):
