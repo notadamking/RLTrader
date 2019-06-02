@@ -39,8 +39,8 @@ model_params = {
     'lam': params['lam'],
 }
 
-model = PPO2(MlpLnLstmPolicy, train_env, verbose=1, nminibatches=1,
-              tensorboard_log="./tensorboard", **model_params)
+model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
+             tensorboard_log="./tensorboard", **model_params)
 
 test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
     test_df, reward_func="profit", forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
@@ -57,5 +57,4 @@ for idx in range(30):
         reward_sum += reward
 
     print('[', idx, '] Total reward: ', reward_sum)
-    model.save('./ppo2_profit_' + idx + '.pkl')
-
+    model.save('./ppo2_profit_' + str(idx) + '.pkl')
