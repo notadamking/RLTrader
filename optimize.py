@@ -15,12 +15,13 @@ import numpy as np
 
 from stable_baselines.common.policies import MlpLnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import ACKTR, PPO2
+from stable_baselines import PPO2
 
 from env.BitcoinTradingEnv import BitcoinTradingEnv
+from util.indicators import add_indicators
 
 # number of parallel jobs
-n_jobs = 4
+n_jobs = 2
 # maximum number of trials for finding the best hyperparams
 n_trials = 1000
 # number of test episodes per trial
@@ -31,6 +32,8 @@ n_evaluations = 4
 
 df = pd.read_csv('./data/coinbase_hourly.csv')
 df = df.drop(['Symbol'], axis=1)
+df = df.sort_values(['Date'])
+df = add_indicators(df.reset_index())
 
 train_len = int(len(df)) - int(len(df) * 0.2)
 train_df = df[:train_len]
@@ -40,17 +43,6 @@ def optimize_envs(trial):
     return {
         'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
-    }
-
-
-def optimize_acktr(trial):
-    return {
-        'n_steps': int(trial.suggest_loguniform('n_steps', 2, 256)),
-        'gamma': trial.suggest_uniform('gamma', 0.9, 0.9999),
-        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
-        'lr_schedule': trial.suggest_categorical('lr_schedule', ['linear', 'constant',  'double_linear_con', 'middle_drop', 'double_middle_drop']),
-        'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
-        'vf_coef': trial.suggest_uniform('vf_coef', 0., 1.)
     }
 
 
@@ -92,7 +84,7 @@ def learn_callback(_locals, _globals):
     test_df = model.train_df.copy()
 
     test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-        test_df[model.n_timesteps:], reward_func='profit', **model.env_params)])
+        test_df[model.n_timesteps:], reward_func='omega', **model.env_params)])
 
     obs = test_env.reset()
     while n_episodes < n_test_episodes:
@@ -119,21 +111,13 @@ def learn_callback(_locals, _globals):
 
 
 def optimize_agent(trial):
-    agent, policy = PPO2, MlpLnLstmPolicy
-
     env_params = optimize_envs(trial)
-
     train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-        train_df, reward_func='profit', **env_params)])
+        train_df, reward_func='omega', **env_params)])
 
-    if agent == ACKTR:
-        params = optimize_acktr(trial)
-        model = ACKTR(policy, train_env, verbose=1,
-                      tensorboard_log="./tensorboard", **params)
-    elif agent == PPO2:
-        params = optimize_ppo2(trial)
-        model = PPO2(policy, train_env, verbose=1, nminibatches=1,
-                     tensorboard_log="./tensorboard", **params)
+    model_params = optimize_ppo2(trial)
+    model = PPO2(MlpLnLstmPolicy, train_env, verbose=1, nminibatches=1,
+                     tensorboard_log="./tensorboard", **model_params)
 
     model.trial = trial
     model.n_timesteps = len(train_df)
@@ -162,7 +146,7 @@ def optimize_agent(trial):
 
 def optimize():
     study = optuna.create_study(
-        study_name='ppo2_profit', storage='sqlite:///params.db', load_if_exists=True)
+        study_name='ppo2_omega', storage='sqlite:///params.db', load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)

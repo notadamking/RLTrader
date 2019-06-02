@@ -25,7 +25,7 @@ class BitcoinTradingEnv(gym.Env):
         self.commission = commission
         self.reward_func = reward_func
 
-        self.df = df.fillna(method='bfill')
+        self.df = df.fillna(method='bfill').reset_index()
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
@@ -46,7 +46,7 @@ class BitcoinTradingEnv(gym.Env):
 
         self.forecast_len = kwargs.get('forecast_len', 10)
         self.confidence_interval = kwargs.get('confidence_interval', 0.95)
-        self.obs_shape = (1, 6 + len(self.df.columns) -
+        self.obs_shape = (1, 5 + len(self.df.columns) -
                           2 + (self.forecast_len * 3))
 
         # Actions of the format Buy 1/4, Sell 3/4, Hold (amount ignored), etc.
