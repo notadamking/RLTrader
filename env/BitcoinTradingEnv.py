@@ -13,6 +13,10 @@ from util.benchmarks import buy_and_hodl, rsi_divergence, sma_crossover
 from util.indicators import add_indicators
 
 
+# Delete this if debugging
+np.warnings.filterwarnings('ignore')
+
+
 class BitcoinTradingEnv(gym.Env):
     '''A Bitcoin trading environment for OpenAI gym'''
     metadata = {'render.modes': ['human', 'system', 'none']}
@@ -29,6 +33,7 @@ class BitcoinTradingEnv(gym.Env):
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
+        benchmarks = kwargs.get('benchmarks', [])
         self.benchmarks = [
             {
                 'label': 'Buy and HODL',
@@ -41,7 +46,8 @@ class BitcoinTradingEnv(gym.Env):
             {
                 'label': 'SMA Crossover',
                 'values': sma_crossover(self.df['Close'], initial_balance, commission)
-            }
+            },
+            *benchmarks,
         ]
 
         self.forecast_len = kwargs.get('forecast_len', 10)
@@ -64,7 +70,7 @@ class BitcoinTradingEnv(gym.Env):
 
         scaled = features[:self.current_step + self.forecast_len + 1].values
         scaled[abs(scaled) == inf] = 0
-        scaled = scaler.fit_transform(scaled.astype('float64'))
+        scaled = scaler.fit_transform(scaled.astype('float32'))
         scaled = pd.DataFrame(scaled, columns=features.columns)
 
         obs = scaled.values[-1]
@@ -80,11 +86,12 @@ class BitcoinTradingEnv(gym.Env):
         obs = np.insert(obs, len(obs), forecast.conf_int().flatten(), axis=0)
 
         scaled_history = scaler.fit_transform(
-            self.account_history.astype('float64'))
+            self.account_history.astype('float32'))
 
         obs = np.insert(obs, len(obs), scaled_history[:, -1], axis=0)
 
         obs = np.reshape(obs.astype('float16'), self.obs_shape)
+        obs[np.bitwise_not(np.isfinite(obs))] = 0
 
         return obs
 
@@ -135,7 +142,7 @@ class BitcoinTradingEnv(gym.Env):
 
     def _reward(self):
         length = min(self.current_step, self.forecast_len)
-        returns = np.diff(self.net_worths)[-length:]
+        returns = np.diff(self.net_worths[-length:])
 
         if np.count_nonzero(returns) < 1:
             return 0
@@ -152,7 +159,7 @@ class BitcoinTradingEnv(gym.Env):
         else:
             reward = returns[-1]
 
-        return reward if abs(reward) != inf and not np.isnan(reward) else 0
+        return reward if np.isfinite(reward) else 0
 
     def _done(self):
         return self.net_worths[-1] < self.initial_balance / 10 or self.current_step == len(self.df) - self.forecast_len - 1

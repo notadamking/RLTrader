@@ -20,6 +20,7 @@ from stable_baselines import PPO2
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
+
 # number of parallel jobs
 n_jobs = 2
 # maximum number of trials for finding the best hyperparams
@@ -27,7 +28,7 @@ n_trials = 1000
 # number of test episodes per trial
 n_test_episodes = 3
 # number of evaluations for pruning per trial
-n_evaluations = 4
+n_evaluations = 2
 
 
 df = pd.read_csv('./data/coinbase_hourly.csv')
@@ -36,13 +37,13 @@ df = df.sort_values(['Date'])
 df = add_indicators(df.reset_index())
 
 train_len = int(len(df) - len(df) * 0.2)
-train_df = df[:train_len]
+train_df = df[10000:train_len]
 test_df = df[train_len:]
 
 
 def optimize_envs(trial):
     return {
-        'reward_func': 'sortino',
+        'reward_func': 'calmar',
         'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
     }
@@ -71,7 +72,7 @@ def optimize_agent(trial):
     model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
                  tensorboard_log="./tensorboard", **model_params)
 
-    last_reward = -np.inf
+    last_reward = -np.finfo(np.float16).max
     evaluation_interval = int(len(train_df) / n_evaluations)
 
     for eval_idx in range(n_evaluations):
@@ -106,7 +107,7 @@ def optimize_agent(trial):
 
 def optimize():
     study = optuna.create_study(
-        study_name='ppo2_sortino', storage='sqlite:///params.db', load_if_exists=True)
+        study_name='ppo2_calmar', storage='sqlite:///params.db', load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)

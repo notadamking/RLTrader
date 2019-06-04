@@ -1,6 +1,7 @@
 import gym
 import optuna
 import pandas as pd
+import numpy as np
 
 from stable_baselines.common.policies import MlpLnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
@@ -9,11 +10,13 @@ from stable_baselines import A2C, ACKTR, PPO2
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
-study = optuna.load_study(study_name='ppo2_profit',
+
+study = optuna.load_study(study_name='ppo2_calmar',
                           storage='sqlite:///params.db')
 params = study.best_trial.params
 
-print("Testing PPO2 agent with params:", params)
+print("Training PPO2 agent with params:", params)
+print("Best trial:", study.best_trial.value)
 
 df = pd.read_csv('./data/coinbase_hourly.csv')
 df = df.drop(['Symbol'], axis=1)
@@ -27,7 +30,10 @@ train_df = df[:train_len]
 test_df = df[train_len:]
 
 train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    train_df, reward_func="profit", forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+    train_df, reward_func="calmar", forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+
+test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+    test_df, reward_func="calmar", forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
 
 model_params = {
     'n_steps': int(params['n_steps']),
@@ -39,13 +45,16 @@ model_params = {
     'lam': params['lam'],
 }
 
+curr_idx = -1
 model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
-             tensorboard_log="./tensorboard", **model_params)
+            tensorboard_log="./tensorboard", **model_params)
 
-test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, reward_func="profit", forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+# curr_idx = 2
+# model = PPO2.load('./agents/ppo2_calmar_' + str(curr_idx) + '.pkl', env=train_env)
 
-for idx in range(30):
+for idx in range(curr_idx + 1, 5):
+    print('[', idx, '] Training for: ', train_len, ' time steps')
+
     model.learn(total_timesteps=train_len)
 
     obs = test_env.reset()
@@ -56,5 +65,5 @@ for idx in range(30):
         obs, reward, done, info = test_env.step(action)
         reward_sum += reward
 
-    print('[', idx, '] Total reward: ', reward_sum)
-    model.save('./ppo2_profit_' + str(idx) + '.pkl')
+    print('[', idx, '] Total reward: ', reward_sum, ' (calmar)')
+    model.save('./agents/ppo2_calmar_' + str(idx) + '.pkl')

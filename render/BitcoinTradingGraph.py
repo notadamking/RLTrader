@@ -74,11 +74,11 @@ class BitcoinTradingGraph:
             min(net_worths) / 1.25, max(net_worths) * 1.25)
 
     def _render_benchmarks(self, step_range, dates, benchmarks):
-        colors = ['red', 'blue', 'purple', 'orange', 'yellow']
+        colors = ['orange', 'cyan', 'purple', 'blue', 'magenta', 'yellow', 'black', 'red', 'green']
 
         for i, benchmark in enumerate(benchmarks):
             self.net_worth_ax.plot(
-                dates, benchmark['values'][step_range], label=benchmark['label'], color=colors[i], alpha=0.3)
+                dates, benchmark['values'][step_range], label=benchmark['label'], color=colors[i % len(colors)], alpha=0.3)
 
     def _render_price(self, step_range, dates, current_step):
         self.price_ax.clear()
