@@ -1,6 +1,6 @@
 .vscode
 data/bitstamp.csv
-tensorboard
+tensorboard/*
 agents
 research/results
 **/__pycache__
