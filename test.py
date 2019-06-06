@@ -9,12 +9,17 @@ from stable_baselines import A2C, ACKTR, PPO2
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
-study = optuna.load_study(study_name='ppo2_sortino',
-                          storage='sqlite:///params.db')
+curr_idx = 0
+reward_strategy = 'sortino'
+input_data_file = 'data/coinbase_hourly.csv'
+params_db_file = 'sqlite:///params.db'
+
+study_name = 'ppo2' + reward_strategy
+study = optuna.load_study(study_name=study_name, storage=params_db_file)
 params = study.best_trial.params
 
 print("Testing PPO2 agent with params:", params)
-print("Best trial:", study.best_trial.value)
+print("Best trial:", -1 * study.best_trial.value)
 
 df = pd.read_csv('./data/coinbase_hourly.csv')
 df = df.drop(['Symbol'], axis=1)
@@ -27,7 +32,7 @@ train_len = int(len(df)) - test_len
 test_df = df[train_len:]
 
 test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, reward_func="sortino", forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+    test_df, reward_func=reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
 
 model_params = {
     'n_steps': int(params['n_steps']),
@@ -39,7 +44,7 @@ model_params = {
     'lam': params['lam'],
 }
 
-model = PPO2.load('./agents/ppo2_sortino_3.pkl', env=test_env)
+model = PPO2.load('./agents/ppo2_' + reward_strategy + '_' + str(curr_idx) + '.pkl', env=test_env)
 
 obs, done = test_env.reset(), False
 while not done:

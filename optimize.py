@@ -21,29 +21,37 @@ from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
 
+reward_strategy = 'sortino'
+input_data_file = 'data/coinbase_hourly.csv'
+params_db_file = 'sqlite:///params.db'
+
 # number of parallel jobs
-n_jobs = 2
+n_jobs = 4
 # maximum number of trials for finding the best hyperparams
 n_trials = 1000
 # number of test episodes per trial
 n_test_episodes = 3
 # number of evaluations for pruning per trial
-n_evaluations = 2
+n_evaluations = 4
 
 
-df = pd.read_csv('./data/coinbase_hourly.csv')
+df = pd.read_csv(input_data_file)
 df = df.drop(['Symbol'], axis=1)
 df = df.sort_values(['Date'])
 df = add_indicators(df.reset_index())
 
-train_len = int(len(df) - len(df) * 0.2)
-train_df = df[10000:train_len]
-test_df = df[train_len:]
+train_len = int(len(df) * 0.8)
+
+df = df[:train_len]
+
+validation_len = int(train_len * 0.8)
+train_df = df[:validation_len]
+test_df = df[validation_len:]
 
 
 def optimize_envs(trial):
     return {
-        'reward_func': 'calmar',
+        'reward_func': reward_strategy,
         'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
     }
@@ -106,8 +114,9 @@ def optimize_agent(trial):
 
 
 def optimize():
+    study_name = 'ppo2_' + reward_strategy
     study = optuna.create_study(
-        study_name='ppo2_calmar', storage='sqlite:///params.db', load_if_exists=True)
+        study_name=study_name, storage=params_db_file, load_if_exists=True)
 
     try:
         study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)
