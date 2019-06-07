@@ -77,7 +77,7 @@ class BitcoinTradingEnv(gym.Env):
 
         past_df = self.stationary_df['Close'][:
                                               self.current_step + self.forecast_len + 1]
-        forecast_model = SARIMAX(past_df.values, enforce_stationarity=False)
+        forecast_model = SARIMAX(past_df.values, enforce_stationarity=False, simple_differencing=True)
         model_fit = forecast_model.fit(method='bfgs', disp=False)
         forecast = model_fit.get_forecast(
             steps=self.forecast_len, alpha=(1 - self.confidence_interval))
