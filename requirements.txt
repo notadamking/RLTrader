@@ -6,6 +6,6 @@ gym
 stable_baselines
 optuna
 ta
-statsmodels
+statsmodels==0.10.0rc2
 empyrical
 tensorflow-gpu
