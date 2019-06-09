@@ -34,11 +34,14 @@ train_len = int(len(df)) - test_len
 train_df = df[:train_len]
 test_df = df[train_len:]
 
-train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    train_df, reward_func=reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+# Enable multiprocess environment
+n_cpu = 32
 
-test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, reward_func=reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+train_env = SubprocVecEnv([lambda: BitcoinTradingEnv(
+    train_df, reward_func=reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval']) for i in range(n_cpu)])
+
+test_env = SubprocVecEnv([lambda: BitcoinTradingEnv(
+    test_df, reward_func=reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval']) for i in range(n_cpu)])
 
 model_params = {
     'n_steps': int(params['n_steps']),
