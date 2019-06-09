@@ -21,105 +21,108 @@ from stable_baselines import PPO2
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
-reward_strategy = 'sortino'
-input_data_file = os.path.join('data', 'coinbase_hourly.csv')
-params_db_file = 'sqlite:///params.db'
+class Optimize:
+  def __init__(self):
+    self.reward_strategy = 'sortino'
+    self.input_data_file = os.path.join('data', 'coinbase_daily.csv')
+    self.params_db_file = 'sqlite:///params.db'
 
-# number of parallel jobs
-n_jobs = 4
-# maximum number of trials for finding the best hyperparams
-n_trials = 1000
-# number of test episodes per trial
-n_test_episodes = 3
-# number of evaluations for pruning per trial
-n_evaluations = 4
+    # number of parallel jobs
+    self.n_jobs = 4
+    # maximum number of trials for finding the best hyperparams
+    self.n_trials = 1
+    # number of test episodes per trial
+    self.n_test_episodes = 1
+    # number of evaluations for pruning per trial
+    self.n_evaluations = 1
+    self.prepare_data()
 
+  def prepare_data(self):
+    df = pd.read_csv(self.input_data_file)
+    df = df.drop(['Symbol'], axis=1)
+    df = df.sort_values(['Date'])
+    df = add_indicators(df.reset_index())
 
-df = pd.read_csv(input_data_file)
-df = df.drop(['Symbol'], axis=1)
-df = df.sort_values(['Date'])
-df = add_indicators(df.reset_index())
+    train_len = int(len(df) * 0.8)
 
-train_len = int(len(df) * 0.8)
+    df = df[:train_len]
 
-df = df[:train_len]
-
-validation_len = int(train_len * 0.8)
-train_df = df[:validation_len]
-test_df = df[validation_len:]
-
-
-def optimize_envs(trial):
-    return {
-        'reward_func': reward_strategy,
-        'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
-        'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
-    }
+    validation_len = int(train_len * 0.8)
+    self.train_df = df[:validation_len]
+    self.test_df = df[validation_len:]
 
 
-def optimize_ppo2(trial):
-    return {
-        'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
-        'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
-        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
-        'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
-        'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.4),
-        'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
-        'lam': trial.suggest_uniform('lam', 0.8, 1.)
-    }
+  def optimize_envs(self, trial):
+      return {
+          'reward_func': self.reward_strategy,
+          'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
+          'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
+      }
 
 
-def optimize_agent(trial):
-    env_params = optimize_envs(trial)
-    train_env = DummyVecEnv(
-        [lambda: BitcoinTradingEnv(train_df,  **env_params)])
-    test_env = DummyVecEnv(
-        [lambda: BitcoinTradingEnv(test_df, **env_params)])
+  def optimize_ppo2(self, trial):
+      return {
+          'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
+          'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
+          'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
+          'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
+          'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.4),
+          'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
+          'lam': trial.suggest_uniform('lam', 0.8, 1.)
+      }
 
-    model_params = optimize_ppo2(trial)
-    model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
-                 tensorboard_log=os.path.join('.', 'tensorboard'), **model_params)
+  def optimize_agent(self, trial):
+      env_params = self.optimize_envs(trial)
+      train_env = DummyVecEnv(
+          [lambda: BitcoinTradingEnv(self.train_df,  **env_params)])
+      test_env = DummyVecEnv(
+          [lambda: BitcoinTradingEnv(self.test_df, **env_params)])
 
-    last_reward = -np.finfo(np.float16).max
-    evaluation_interval = int(len(train_df) / n_evaluations)
+      model_params = self.optimize_ppo2(trial)
+      model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
+                   tensorboard_log=os.path.join('.', 'tensorboard'), **model_params)
 
-    for eval_idx in range(n_evaluations):
-        try:
-            model.learn(evaluation_interval)
-        except AssertionError:
-            raise
+      last_reward = -np.finfo(np.float16).max
+      evaluation_interval = int(len(self.train_df) / self.n_evaluations)
 
-        rewards = []
-        n_episodes, reward_sum = 0, 0.0
+      for eval_idx in range(self.n_evaluations):
+          try:
+              model.learn(evaluation_interval)
+          except AssertionError:
+              raise
 
-        obs = test_env.reset()
-        while n_episodes < n_test_episodes:
-            action, _ = model.predict(obs)
-            obs, reward, done, _ = test_env.step(action)
-            reward_sum += reward
+          rewards = []
+          n_episodes, reward_sum = 0, 0.0
 
-            if done:
-                rewards.append(reward_sum)
-                reward_sum = 0.0
-                n_episodes += 1
-                obs = test_env.reset()
+          obs = test_env.reset()
+          while n_episodes < self.n_test_episodes:
+              action, _ = model.predict(obs)
+              obs, reward, done, _ = test_env.step(action)
+              reward_sum += reward
 
-        last_reward = np.mean(rewards)
-        trial.report(-1 * last_reward, eval_idx)
+              if done:
+                  rewards.append(reward_sum)
+                  reward_sum = 0.0
+                  n_episodes += 1
+                  obs = test_env.reset()
 
-        if trial.should_prune(eval_idx):
-            raise optuna.structs.TrialPruned()
+          last_reward = np.mean(rewards)
+          trial.report(-1 * last_reward, eval_idx)
 
-    return -1 * last_reward
+          if trial.should_prune(eval_idx):
+              raise optuna.structs.TrialPruned()
+
+      return -1 * last_reward
 
 
-def optimize():
-    study_name = 'ppo2_' + reward_strategy
+  def optimize(self):
+
+    study_name = 'ppo2_' + self.reward_strategy
     study = optuna.create_study(
-        study_name=study_name, storage=params_db_file, load_if_exists=True)
+        study_name=study_name, storage=self.params_db_file, load_if_exists=True)
 
     try:
-        study.optimize(optimize_agent, n_trials=n_trials, n_jobs=n_jobs)
+        study.optimize(self.optimize_agent, n_trials=self.n_trials, n_jobs=self.n_jobs)
     except KeyboardInterrupt:
         pass
 
@@ -138,4 +141,5 @@ def optimize():
 
 
 if __name__ == '__main__':
-    optimize()
+    optimizer = Optimize()
+    optimizer.optimize()

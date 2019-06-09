@@ -16,11 +16,47 @@ The first thing you will need to do to get started is install the requirements i
  ```bash
  pip install -r requirements.txt
  ```
- 
+
  The requirements include the `tensorflow-gpu` library, though if you do not have access to a GPU, you should replace this requirement with `tensorflow`.
- 
+
+## Testing workflow
+
+First let's try the "optimize" strategy with a single run, single evaluation, just to make sure that things are "sane".
+
+### Expected output
+
+```
+% date ; python optimize.py; date
+Thu Jun  6 14:09:23 CDT 2019
+[I 2019-06-06 14:09:35,557] A new study created with name: ppo2_sortino
+
+<maybe some Tensorflow deprecation warnings>
+
+[I 2019-06-06 14:21:50,724] Finished trial#1 resulted in value: -956.9744873046875. Current best value is -956.9744873046875 with parameters: {'cliprange': 0.18943365028795878, 'confidence_interval': 0.8286824056507663, 'ent_coef': 8.094794121881875e-08, 'forecast_len': 14.7463$
+0586736364, 'gamma': 0.9834343245286393, 'lam': 0.9646711236104828, 'learning_rate': 0.032564661147532384, 'n_steps': 28.294495666878618, 'noptepochs': 2.3568984946859066}.
+Number of finished trials:  2
+Best trial:
+Value:  -956.9744873046875
+Params:
+    cliprange: 0.18943365028795878
+    confidence_interval: 0.8286824056507663
+    ent_coef: 8.094794121881875e-08
+    forecast_len: 14.746310586736364
+    gamma: 0.9834343245286393
+    lam: 0.9646711236104828
+    learning_rate: 0.032564661147532384
+    n_steps: 28.294495666878618
+    noptepochs: 2.3568984946859066
+
+Thu Jun  6 14:21:51 CDT 2019
+
+%
+```
+
+So that took about 12 minutes on a pretty powerful laptop to run a single trial (at least as of Jun 2019).
+
  # Finding Hyper-Parameters
- 
+
 While you could just let the agent train and run with the default PPO2 hyper-parameters, your agent would likely not be very profitable. The `stable-baselines` library provides a great set of default parameters that work for most problem domains, but  we need to better.
 
 To do this, you will need to run `optimize.py`. Within the file, you can define the `reward_strategy` for the environment to use, this is currently defaulted to `sortino`.
