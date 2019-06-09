@@ -70,7 +70,7 @@ for idx in range(curr_idx + 1, 10):
     while not np.all(done):
         action, _states = model.predict(obs)
         obs, reward, done, info = test_env.step(action)
-        reward_sum += reward
+        reward_sum += sum([i for i in reward if isinstance(i, int) or isinstance(i, float)])
 
     print('[', idx, '] Total reward: ', reward_sum, ' (' + reward_strategy + ')')
     model.save('./agents/ppo2_' + reward_strategy + '_' + str(idx) + '.pkl')
