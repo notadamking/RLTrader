@@ -67,7 +67,7 @@ for idx in range(curr_idx + 1, 10):
     obs = test_env.reset()
     done, reward_sum = False, 0
 
-    while not done:
+    while not np.all(done):
         action, _states = model.predict(obs)
         obs, reward, done, info = test_env.step(action)
         reward_sum += reward
