@@ -11,6 +11,7 @@ Source: https://github.com/araffin/rl-baselines-zoo/blob/master/utils/hyperparam
 import optuna
 
 import os
+from util.log import init_logger
 import pandas as pd
 import numpy as np
 
@@ -24,18 +25,24 @@ from util.indicators import add_indicators
 class Optimize:
   def __init__(self):
     self.reward_strategy = 'sortino'
-    self.input_data_file = os.path.join('data', 'coinbase_daily.csv')
+    self.input_data_file = os.path.join('data', 'coinbase_hourly.csv')
     self.params_db_file = 'sqlite:///params.db'
 
     # number of parallel jobs
     self.n_jobs = 4
     # maximum number of trials for finding the best hyperparams
-    self.n_trials = 1
+    self.n_trials = 1000
     # number of test episodes per trial
-    self.n_test_episodes = 1
+    self.n_test_episodes = 3
     # number of evaluations for pruning per trial
-    self.n_evaluations = 1
-    self.prepare_data()
+    self.n_evaluations = 4
+
+    self.train_df = None
+    self.test_df = None
+
+    self.logger = init_logger(__name__, testing_mode=True)
+
+    self.logger.debug("Initialized Optimizer")
 
   def prepare_data(self):
     df = pd.read_csv(self.input_data_file)
@@ -114,8 +121,27 @@ class Optimize:
 
       return -1 * last_reward
 
+  def log_parameters(self):
+    self.logger.debug("Reward Strategy: %s" % self.reward_strategy)
+    self.logger.debug("Input Data File: %s" % self.input_data_file)
+    self.logger.debug("Params DB File: %s" % self.params_db_file)
+    self.logger.debug("Parallel jobs: %d" % self.n_jobs)
+    self.logger.debug("Trials: %d" % self.n_trials)
+    self.logger.debug("Test episodes (per trial): %d" % self.n_test_episodes)
+    self.logger.debug("Evaluations (per trial): %d" % self.n_evaluations)
+    self.logger.debug("Train DF Length: %d" % len(self.train_df))
+    self.logger.debug("Test DF Length: %d" % len(self.test_df))
+    self.logger.debug("Features: %s", self.train_df.columns.str.cat(sep=", "))
+
 
   def optimize(self):
+    if not self.train_df:
+      self.logger.info("Running built-in data preparation")
+      self.prepare_data()
+    else:
+      self.logger.info("Using provided data (Length: %d)" % len(self.train_df))
+
+    self.log_parameters()
 
     study_name = 'ppo2_' + self.reward_strategy
     study = optuna.create_study(
@@ -126,20 +152,26 @@ class Optimize:
     except KeyboardInterrupt:
         pass
 
-    print('Number of finished trials: ', len(study.trials))
+    self.logger.info('Number of finished trials: {}'.format(len(study.trials)))
 
-    print('Best trial:')
+    self.logger.info('Best trial:')
     trial = study.best_trial
 
-    print('Value: ', trial.value)
+    self.logger.info('Value: {}'.format(trial.value))
 
-    print('Params: ')
+    self.logger.info('Params: ')
     for key, value in trial.params.items():
-        print('    {}: {}'.format(key, value))
+        self.logger.info('    {}: {}'.format(key, value))
 
     return study.trials_dataframe()
 
-
 if __name__ == '__main__':
     optimizer = Optimize()
+    test_mode = "FAST"
+    if test_mode == "FAST":
+      optimizer.input_data_file = os.path.join('data', 'coinbase_daily.csv')
+      optimizer.n_jobs = 1
+      optimizer.n_trials = 1
+      optimizer.n_test_episodes = 1
+      optimizer.n_evaluations = 1
     optimizer.optimize()
