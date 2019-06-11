@@ -30,6 +30,7 @@ class BitcoinTradingEnv(gym.Env):
         self.reward_func = reward_func
 
         self.df = df.fillna(method='bfill').reset_index()
+        self.df = add_indicators(self.df.reset_index())
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
