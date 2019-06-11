@@ -133,7 +133,6 @@ class Optimize:
     self.logger.debug("Test DF Length: %d" % len(self.test_df))
     self.logger.debug("Features: %s", self.train_df.columns.str.cat(sep=", "))
 
-
   def optimize(self):
     if not self.train_df:
       self.logger.info("Running built-in data preparation")
@@ -165,13 +164,91 @@ class Optimize:
 
     return study.trials_dataframe()
 
+  def model_params(self, params):
+    return {
+        'n_steps': int(params['n_steps']),
+        'gamma': params['gamma'],
+        'learning_rate': params['learning_rate'],
+        'ent_coef': params['ent_coef'],
+        'cliprange': params['cliprange'],
+        'noptepochs': int(params['noptepochs']),
+        'lam': params['lam'],
+    }
+
+  def train(self):
+    if not self.train_df:
+      self.logger.info("Running built-in data preparation")
+      self.prepare_data()
+    else:
+      self.logger.info("Using provided data (Length: %d)" % len(self.train_df))
+
+    study_name = 'ppo2_' + self.reward_strategy
+
+    study = optuna.load_study(study_name=study_name, storage=self.params_db_file)
+    params = study.best_trial.params
+
+    train_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+      self.train_df, reward_func=self.reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+
+    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+      self.test_df, reward_func=self.reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+
+    model_params = self.model_params(params)
+
+    model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
+            tensorboard_log=os.path.join('.', 'tensorboard'), **model_params)
+
+    models_to_train = 1
+    self.logger.info("Training {} model instances".format(models_to_train))
+
+    for idx in range(0, models_to_train): #Not sure why we are doing this, tbh
+      self.logger.info('[', idx, '] Training for: ', len(self.train_df), ' time steps')
+
+      model.learn(total_timesteps=len(self.train_df))
+
+      obs = test_env.reset()
+      done, reward_sum = False, 0
+
+      while not done:
+          action, _states = model.predict(obs)
+          obs, reward, done, info = test_env.step(action)
+          reward_sum += reward
+
+      self.logger.info('[', idx, '] Total reward: ', reward_sum, ' (' + self.reward_strategy + ')')
+      model.save(os.path.join('.', 'agents', 'ppo2_' + self.reward_strategy + '_' + str(idx) + '.pkl'))
+
+    self.logger.info("Trained {} model instances".format(models_to_train))
+
+  def test(self, model_instance: 0):
+
+    study_name = 'ppo2_' + self.reward_strategy
+    study = optuna.load_study(study_name=study_name, storage=self.params_db_file)
+    params = study.best_trial.params
+
+    test_env = DummyVecEnv([lambda: BitcoinTradingEnv(
+      self.test_df, reward_func=self.reward_strategy, forecast_len=int(params['forecast_len']), confidence_interval=params['confidence_interval'])])
+
+    model_params = self.model_params(params)
+
+    model = PPO2.load(os.path.join('.', 'agents', 'ppo2_' + reward_strategy + '_' + str(model_instance) + '.pkl'), env=test_env)
+
+    obs, done = test_env.reset(), False
+    while not done:
+        action, _states = model.predict(obs)
+        obs, reward, done, info = test_env.step(action)
+
+        test_env.render(mode="human")
+
+
 if __name__ == '__main__':
     optimizer = Optimize()
-    test_mode = "FAST"
+    test_mode = "FAST" # I'm hard-coding this for now
     if test_mode == "FAST":
       optimizer.input_data_file = os.path.join('data', 'coinbase_daily.csv')
       optimizer.n_jobs = 1
       optimizer.n_trials = 1
       optimizer.n_test_episodes = 1
       optimizer.n_evaluations = 1
-    optimizer.optimize()
+    # optimizer.optimize()
+    optimizer.train()
+    # optimizer.test()
