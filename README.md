@@ -36,7 +36,7 @@ This will take a while (hours to days depending on your hardware setup), but ove
 Once you've found a good set of hyper-parameters, we can train an agent with that set. To do this, you will want to open `train.py` and ensure the `reward_strategy` is set to the correct strategy. Then let `train.py` run until you've got some saved models to test.
 
 ```bash
-python ./optimize.py
+python ./train.py
 ```
 
 If you have already trained a model, and would like to resume training from the next epoch, you can set `curr_idx` at the top of the file to the index of the last trained model. Otherwise, leave this at `-1` to start training at epoch 0.
