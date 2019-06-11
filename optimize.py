@@ -17,6 +17,8 @@ from stable_baselines.common.policies import MlpLnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
 
+from pathlib import Path
+
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
@@ -78,7 +80,7 @@ def optimize_agent(trial):
 
     model_params = optimize_ppo2(trial)
     model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
-                 tensorboard_log="./tensorboard", **model_params)
+                 tensorboard_log=Path("./tensorboard").name, **model_params)
 
     last_reward = -np.finfo(np.float16).max
     evaluation_interval = int(len(train_df) / n_evaluations)
