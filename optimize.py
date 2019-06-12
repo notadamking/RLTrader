@@ -56,6 +56,7 @@ def optimize_envs(trial):
         'reward_func': reward_strategy,
         'forecast_len': int(trial.suggest_loguniform('forecast_len', 1, 200)),
         'confidence_interval': trial.suggest_uniform('confidence_interval', 0.7, 0.99),
+        'do_benchmark': False
     }
 
 

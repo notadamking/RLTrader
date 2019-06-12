@@ -33,22 +33,23 @@ class BitcoinTradingEnv(gym.Env):
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
-        benchmarks = kwargs.get('benchmarks', [])
-        self.benchmarks = [
-            {
-                'label': 'Buy and HODL',
-                'values': buy_and_hodl(self.df['Close'], initial_balance, commission)
-            },
-            {
-                'label': 'RSI Divergence',
-                'values': rsi_divergence(self.df['Close'], initial_balance, commission)
-            },
-            {
-                'label': 'SMA Crossover',
-                'values': sma_crossover(self.df['Close'], initial_balance, commission)
-            },
-            *benchmarks,
-        ]
+        do_benchmark = kwargs.get('do_benchmark', True)
+        self.benchmarks = kwargs.get('benchmarks', [])
+        if do_benchmark:
+            self.benchmarks.append([
+                {
+                    'label': 'Buy and HODL',
+                    'values': buy_and_hodl(self.df['Close'], initial_balance, commission)
+                },
+                {
+                    'label': 'RSI Divergence',
+                    'values': rsi_divergence(self.df['Close'], initial_balance, commission)
+                },
+                {
+                    'label': 'SMA Crossover',
+                    'values': sma_crossover(self.df['Close'], initial_balance, commission)
+                }
+            ])
 
         self.forecast_len = kwargs.get('forecast_len', 10)
         self.confidence_interval = kwargs.get('confidence_interval', 0.95)
