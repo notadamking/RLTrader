@@ -6,3 +6,4 @@ research/results
 **/__pycache__
 *.pkl
 *.db
+.idea
