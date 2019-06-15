@@ -96,7 +96,7 @@ class BitcoinTradingEnv(gym.Env):
         return obs
 
     def _current_price(self):
-        return self.df['Close'].values[self.current_step + self.forecast_len] + 0.01
+        return self.df['Close'].values[self.current_step + self.forecast_len]
 
     def _take_action(self, action):
         current_price = self._current_price()
