@@ -1,3 +1,4 @@
+import os
 import gym
 import optuna
 import pandas as pd
@@ -12,10 +13,9 @@ from pathlib import Path
 from env.BitcoinTradingEnv import BitcoinTradingEnv
 from util.indicators import add_indicators
 
-
 curr_idx = -1
 reward_strategy = 'sortino'
-input_data_file = 'data/coinbase_hourly.csv'
+input_data_file = os.path.join('data', 'coinbase_hourly.csv')
 params_db_file = 'sqlite:///params.db'
 
 study_name = 'ppo2_' + reward_strategy
@@ -54,9 +54,10 @@ model_params = {
 
 if curr_idx == -1:
     model = PPO2(MlpLnLstmPolicy, train_env, verbose=0, nminibatches=1,
-            tensorboard_log=Path("./tensorboard").name, **model_params)
+                 tensorboard_log=os.path.join('.', 'tensorboard'), **model_params)
 else:
-    model = PPO2.load('./agents/ppo2_' + reward_strategy + '_' + str(curr_idx) + '.pkl', env=train_env)
+    model = PPO2.load(os.path.join('.', 'agents', 'ppo2_' +
+                                   reward_strategy + '_' + str(curr_idx) + '.pkl'), env=train_env)
 
 for idx in range(curr_idx + 1, 10):
     print('[', idx, '] Training for: ', train_len, ' time steps')
@@ -71,5 +72,7 @@ for idx in range(curr_idx + 1, 10):
         obs, reward, done, info = test_env.step(action)
         reward_sum += reward
 
-    print('[', idx, '] Total reward: ', reward_sum, ' (' + reward_strategy + ')')
-    model.save('./agents/ppo2_' + reward_strategy + '_' + str(idx) + '.pkl')
+    print('[', idx, '] Total reward: ',
+          reward_sum, ' (' + reward_strategy + ')')
+    model.save(os.path.join('.', 'agents', 'ppo2_' +
+                            reward_strategy + '_' + str(idx) + '.pkl'))

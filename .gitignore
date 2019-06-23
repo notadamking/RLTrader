@@ -3,6 +3,8 @@ data/bitstamp.csv
 tensorboard/*
 agents
 research/results
+research/.ipynb_checkpoints/
 **/__pycache__
 *.pkl
 *.db
+log/

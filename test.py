@@ -1,3 +1,4 @@
+import os
 import gym
 import optuna
 import pandas as pd
@@ -11,7 +12,7 @@ from util.indicators import add_indicators
 
 curr_idx = 0
 reward_strategy = 'sortino'
-input_data_file = 'data/coinbase_hourly.csv'
+input_data_file = os.path.join('data', 'coinbase_hourly.csv')
 params_db_file = 'sqlite:///params.db'
 
 study_name = 'ppo2_' + reward_strategy
@@ -21,7 +22,7 @@ params = study.best_trial.params
 print("Testing PPO2 agent with params:", params)
 print("Best trial:", -1 * study.best_trial.value)
 
-df = pd.read_csv('./data/coinbase_hourly.csv')
+df = pd.read_csv(input_data_file)
 df = df.drop(['Symbol'], axis=1)
 df = df.sort_values(['Date'])
 df = add_indicators(df.reset_index())
@@ -44,7 +45,7 @@ model_params = {
     'lam': params['lam'],
 }
 
-model = PPO2.load('./agents/ppo2_' + reward_strategy + '_' + str(curr_idx) + '.pkl', env=test_env)
+model = PPO2.load(os.path.join('.', 'agents', 'ppo2_' + reward_strategy + '_' + str(curr_idx) + '.pkl'), env=test_env)
 
 obs, done = test_env.reset(), False
 while not done:
