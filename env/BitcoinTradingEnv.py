@@ -1,15 +1,14 @@
 import gym
 import pandas as pd
 import numpy as np
-from numpy import inf
+import tensorflow as tf
+
 from gym import spaces
-from sklearn import preprocessing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from empyrical import sortino_ratio, calmar_ratio, omega_ratio
 
 from render.BitcoinTradingGraph import BitcoinTradingGraph
-from util.stationarization import log_and_difference
-from util.benchmarks import buy_and_hodl, rsi_divergence, sma_crossover
+from util.transform import log_and_difference, max_min_normalize
 from util.indicators import add_indicators
 
 
@@ -33,22 +32,7 @@ class BitcoinTradingEnv(gym.Env):
         self.stationary_df = log_and_difference(
             self.df, ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
 
-        benchmarks = kwargs.get('benchmarks', [])
-        self.benchmarks = [
-            {
-                'label': 'Buy and HODL',
-                'values': buy_and_hodl(self.df['Close'], initial_balance, commission)
-            },
-            {
-                'label': 'RSI Divergence',
-                'values': rsi_divergence(self.df['Close'], initial_balance, commission)
-            },
-            {
-                'label': 'SMA Crossover',
-                'values': sma_crossover(self.df['Close'], initial_balance, commission)
-            },
-            *benchmarks,
-        ]
+        self.benchmarks = kwargs.get('benchmarks', [])
 
         self.forecast_len = kwargs.get('forecast_len', 10)
         self.confidence_interval = kwargs.get('confidence_interval', 0.95)
@@ -63,21 +47,22 @@ class BitcoinTradingEnv(gym.Env):
             low=0, high=1, shape=self.obs_shape, dtype=np.float16)
 
     def _next_observation(self):
-        scaler = preprocessing.MinMaxScaler()
-
         features = self.stationary_df[self.stationary_df.columns.difference([
             'index', 'Date'])]
 
         scaled = features[:self.current_step + self.forecast_len + 1].values
-        scaled[abs(scaled) == inf] = 0
-        scaled = scaler.fit_transform(scaled.astype('float32'))
+        scaled[np.bitwise_not(np.isfinite(scaled))] = 0
+
+        scaled = tf.contrib.eager.py_func(
+            func=max_min_normalize, inp=scaled, Tout=tf.float16)
         scaled = pd.DataFrame(scaled, columns=features.columns)
 
         obs = scaled.values[-1]
 
         past_df = self.stationary_df['Close'][:
                                               self.current_step + self.forecast_len + 1]
-        forecast_model = SARIMAX(past_df.values, enforce_stationarity=False, simple_differencing=True)
+        forecast_model = SARIMAX(
+            past_df.values, enforce_stationarity=False, simple_differencing=True)
         model_fit = forecast_model.fit(method='bfgs', disp=False)
         forecast = model_fit.get_forecast(
             steps=self.forecast_len, alpha=(1 - self.confidence_interval))
@@ -85,8 +70,8 @@ class BitcoinTradingEnv(gym.Env):
         obs = np.insert(obs, len(obs), forecast.predicted_mean, axis=0)
         obs = np.insert(obs, len(obs), forecast.conf_int().flatten(), axis=0)
 
-        scaled_history = scaler.fit_transform(
-            self.account_history.astype('float32'))
+        scaled_history = tf.contrib.eager.py_func(
+            func=max_min_normalize, inp=self.account_history.astype('float32'), Tout=tf.float16)
 
         obs = np.insert(obs, len(obs), scaled_history[:, -1], axis=0)
 
