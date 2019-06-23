@@ -2,6 +2,8 @@
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
+Discord server: https://discord.gg/ZZ7BGWh
+
 Data sets: https://www.cryptodatadownload.com/data/northamerican/
 
 If you'd like to learn more about how we created this agent, check out the Medium article: https://towardsdatascience.com/creating-bitcoin-trading-bots-that-dont-lose-money-2e7165fb0b29
