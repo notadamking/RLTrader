@@ -3,7 +3,7 @@ import logging
 import colorlog
 
 
-def init_logger(dunder_name, testing_mode) -> logging.Logger:
+def init_logger(dunder_name, show_debug=False) -> logging.Logger:
     log_format = (
         '%(asctime)s - '
         '%(name)s - '
@@ -20,7 +20,7 @@ def init_logger(dunder_name, testing_mode) -> logging.Logger:
     colorlog.basicConfig(format=colorlog_format)
     logger = logging.getLogger(dunder_name)
 
-    if testing_mode:
+    if show_debug:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
@@ -29,21 +29,21 @@ def init_logger(dunder_name, testing_mode) -> logging.Logger:
     # Feel free to uncomment and use the outputs as you like
 
     # Output full log
-    # fh = logging.FileHandler(os.path.join('log', 'trading.log')
+    # fh = logging.FileHandler(os.path.join('data', log', 'trading.log')
     # fh.setLevel(logging.DEBUG)
     # formatter = logging.Formatter(log_format)
     # fh.setFormatter(formatter)
     # logger.addHandler(fh)
 
     # # Output warning log
-    # fh = logging.FileHandler(os.path.join('log', 'trading.warning.log')
+    # fh = logging.FileHandler(os.path.join('data', log', 'trading.warning.log')
     # fh.setLevel(logging.WARNING)
     # formatter = logging.Formatter(log_format)
     # fh.setFormatter(formatter)
     # logger.addHandler(fh)
 
     # # Output error log
-    # fh = logging.FileHandler(os.path.join('log', 'trading.error.log')
+    # fh = logging.FileHandler(os.path.join('data', log', 'trading.error.log')
     # fh.setLevel(logging.ERROR)
     # formatter = logging.Formatter(log_format)
     # fh.setFormatter(formatter)
