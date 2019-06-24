@@ -7,8 +7,8 @@ from stable_baselines.common.policies import MlpLnLstmPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines import A2C, ACKTR, PPO2
 
-from env.BitcoinTradingEnv import BitcoinTradingEnv
-from util.indicators import add_indicators
+from lib.env.BitcoinTradingEnv import BitcoinTradingEnv
+from lib.util.indicators import add_indicators
 
 
 df = pd.read_csv('./data/coinbase_hourly.csv')
@@ -22,24 +22,24 @@ train_len = int(len(df)) - test_len
 test_df = df[train_len:]
 
 profit_study = optuna.load_study(study_name='ppo2_profit',
-                          storage='sqlite:///params.db')
+                                 storage='sqlite:///params.db')
 profit_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, reward_func="profit", forecast_len=int(profit_study.best_trial.params['forecast_len']), confidence_interval=profit_study.best_trial.params['confidence_interval'])])
+    test_df, reward_func="profit", forecast_steps=int(profit_study.best_trial.params['forecast_steps']), forecast_alpha=profit_study.best_trial.params['forecast_alpha'])])
 
 sortino_study = optuna.load_study(study_name='ppo2_sortino',
-storage='sqlite:///params.db')
+                                  storage='sqlite:///params.db')
 sortino_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, reward_func="profit", forecast_len=int(sortino_study.best_trial.params['forecast_len']), confidence_interval=sortino_study.best_trial.params['confidence_interval'])])
+    test_df, reward_func="profit", forecast_steps=int(sortino_study.best_trial.params['forecast_steps']), forecast_alpha=sortino_study.best_trial.params['forecast_alpha'])])
 
 # calmar_study = optuna.load_study(study_name='ppo2_sortino',
 # storage='sqlite:///params.db')
 # calmar_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-#    test_df, reward_func="profit", forecast_len=int(calmar_study.best_trial.params['forecast_len']), confidence_interval=calmar_study.best_trial.params['confidence_interval'])])
+#    test_df, reward_func="profit", forecast_steps=int(calmar_study.best_trial.params['forecast_steps']), forecast_alpha=calmar_study.best_trial.params['forecast_alpha'])])
 
 omega_study = optuna.load_study(study_name='ppo2_omega',
-storage='sqlite:///params.db')
+                                storage='sqlite:///params.db')
 omega_env = DummyVecEnv([lambda: BitcoinTradingEnv(
-    test_df, reward_func="profit", forecast_len=int(omega_study.best_trial.params['forecast_len']), confidence_interval=omega_study.best_trial.params['confidence_interval'])])
+    test_df, reward_func="profit", forecast_steps=int(omega_study.best_trial.params['forecast_steps']), forecast_alpha=omega_study.best_trial.params['forecast_alpha'])])
 
 
 profit_model = PPO2.load('./agents/ppo2_profit_4.pkl', env=profit_env)
@@ -85,4 +85,3 @@ with open('./research/results/sortino_net_worths_4.pkl', 'wb') as handle:
 
 with open('./research/results/omega_net_worths_4.pkl', 'wb') as handle:
     pickle.dump(omega_net_worths, handle)
-

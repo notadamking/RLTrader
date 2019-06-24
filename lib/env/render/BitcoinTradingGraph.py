@@ -19,7 +19,7 @@ class BitcoinTradingGraph:
     def __init__(self, df):
         self.df = df
         self.df['Time'] = self.df['Date'].apply(
-            lambda x: datetime.strptime(x, '%Y-%m-%d %I-%p'))
+            lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S'))
         self.df = self.df.sort_values('Time')
 
         # Create a figure on screen and set the title
@@ -74,7 +74,8 @@ class BitcoinTradingGraph:
             min(net_worths) / 1.25, max(net_worths) * 1.25)
 
     def _render_benchmarks(self, step_range, dates, benchmarks):
-        colors = ['orange', 'cyan', 'purple', 'blue', 'magenta', 'yellow', 'black', 'red', 'green']
+        colors = ['orange', 'cyan', 'purple', 'blue',
+                  'magenta', 'yellow', 'black', 'red', 'green']
 
         for i, benchmark in enumerate(benchmarks):
             self.net_worth_ax.plot(
