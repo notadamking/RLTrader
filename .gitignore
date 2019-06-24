@@ -1,10 +1,7 @@
 .vscode
-data/bitstamp.csv
-tensorboard/*
-agents
-research/results
-research/.ipynb_checkpoints/
 **/__pycache__
+data/tensorboard/*
+data/agents/*
+data/log/*
 *.pkl
 *.db
-log/
