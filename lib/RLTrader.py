@@ -16,12 +16,12 @@ from lib.util.log import init_logger
 class RLTrader:
     feature_df = None
 
-    def __init__(self, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy, **kwargs):
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpLnLstmPolicy, **kwargs):
         self.logger = init_logger(
             __name__, show_debug=kwargs.get('show_debug', True))
 
-        self.model = model
-        self.policy = policy
+        self.Model = modelClass
+        self.Policy = policyClass
         self.reward_strategy = kwargs.get('reward_strategy', 'sortino')
         self.tensorboard_path = kwargs.get(
             'tensorboard_path', path.join('data', 'tensorboard'))
@@ -31,12 +31,16 @@ class RLTrader:
 
         self.model_verbose = kwargs.get('model_verbose', 1)
         self.nminibatches = kwargs.get('nminibatches', 1)
+        self.validation_set_percentage = kwargs.get(
+            'validation_set_percentage', 0.8)
+        self.test_set_percentage = kwargs.get('test_set_percentage', 0.8)
 
-        self.initialize_data(kwargs)
+        self.initialize_data()
+        self.initialize_optuna()
 
-        self.logger.debug(f'Reward Strategy: {self.reward_strategy}')
+        self.logger.debug(f'Initialize RLTrader: {self.study_name}')
 
-    def initialize_data(self, kwargs):
+    def initialize_data(self):
         if self.input_data_path is None:
             self.input_data_path = path.join(
                 'data', 'input', 'coinbase_hourly.csv')
@@ -49,28 +53,26 @@ class RLTrader:
         self.feature_df = self.feature_df.sort_values(['Date'])
         self.feature_df = add_indicators(self.feature_df.reset_index())
 
-        self.validation_set_percentage = kwargs.get(
-            'validation_set_percentage', 0.8)
-        self.test_set_percentage = kwargs.get('test_set_percentage', 0.8)
-
         self.logger.debug(
             f'Initialized Features: {self.feature_df.columns.str.cat(sep=", ")}')
 
-    def initialize_optuna(self, should_create: bool = False):
-        self.study_name = f'{self.model.__class__.__name__}__{self.policy.__class__.__name__}__{self.reward_strategy}'
+    def initialize_optuna(self):
+        try:
+            train_env = DummyVecEnv(
+                [lambda: BitcoinTradingEnv(self.feature_df)])
+            model = self.Model(self.Policy, train_env, nminibatches=1)
+            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}__{self.reward_strategy}'
+        except:
+            self.study_name = f'UnknownModel__UnknownPolicy__{self.reward_strategy}'
 
-        if should_create:
-            self.optuna_study = optuna.create_study(
-                study_name=self.study_name, storage=self.params_db_path, load_if_exists=True)
-        else:
-            self.optuna_study = optuna.load_study(
-                study_name=self.study_name, storage=self.params_db_path)
+        self.optuna_study = optuna.create_study(
+            study_name=self.study_name, storage=self.params_db_path, load_if_exists=True)
 
         self.logger.debug('Initialized Optuna:')
 
         try:
             self.logger.debug(
-                f'Best reward in ({len(self.optuna_study.trials)}) trials: {-self.optuna_study.best_value}')
+                f'Best reward in ({len(self.optuna_study.trials)}) trials: {self.optuna_study.best_value}')
         except:
             self.logger.debug('No trials have been finished yet.')
 
@@ -101,7 +103,7 @@ class RLTrader:
         }
 
     def optimize_agent_params(self, trial):
-        if self.model != PPO2:
+        if self.Model != PPO2:
             return {'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.)}
 
         return {
@@ -114,7 +116,7 @@ class RLTrader:
             'lam': trial.suggest_uniform('lam', 0.8, 1.)
         }
 
-    def optimize_params(self, trial, n_prune_evals_per_trial: int = 4, n_tests_per_eval: int = 1, speedup_factor: int = 10):
+    def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1, speedup_factor: int = 10):
         env_params = self.optimize_env_params(trial)
 
         full_train_len = self.test_set_percentage * len(self.feature_df)
@@ -132,7 +134,7 @@ class RLTrader:
             [lambda: BitcoinTradingEnv(validation_df, **env_params)])
 
         model_params = self.optimize_agent_params(trial)
-        model = self.model(self.policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
+        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         last_reward = -np.finfo(np.float16).max
@@ -169,8 +171,6 @@ class RLTrader:
         return -1 * last_reward
 
     def optimize(self, n_trials: int = 10, n_parallel_jobs: int = 4, *optimize_params):
-        self.initialize_optuna(should_create=True)
-
         try:
             self.optuna_study.optimize(
                 self.optimize_params, n_trials=n_trials, n_jobs=n_parallel_jobs, *optimize_params)
@@ -188,8 +188,6 @@ class RLTrader:
         return self.optuna_study.trials_dataframe()
 
     def train(self, n_epochs: int = 1, iters_per_epoch: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
-        self.initialize_optuna()
-
         env_params = self.get_env_params()
 
         train_len = int(self.test_set_percentage * len(self.feature_df))
@@ -200,7 +198,7 @@ class RLTrader:
 
         model_params = self.get_model_params()
 
-        model = self.model(self.policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
+        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         self.logger.info(f'Training for {n_epochs} epochs')
@@ -233,20 +231,20 @@ class RLTrader:
 
         model_path = path.join(
             'data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
-        model = self.model.load(model_path, env=test_env)
+        model = self.Model.load(model_path, env=test_env)
 
         self.logger.info(
             f'Testing model ({self.study_name}__{model_epoch})')
 
-        obs, done, reward_sum = test_env.reset(), False, 0
+        obs, done, rewards = test_env.reset(), False, []
         while not done:
             action, _states = model.predict(obs)
             obs, reward, done, _ = test_env.step(action)
 
-            reward_sum += reward
+            rewards.append(reward)
 
             if should_render:
                 test_env.render(mode='human')
 
         self.logger.info(
-            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(reward_sum)}')
+            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.mean(rewards))}')
