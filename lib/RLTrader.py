@@ -11,12 +11,13 @@ from stable_baselines import PPO2
 from lib.env.BitcoinTradingEnv import BitcoinTradingEnv
 from lib.util.indicators import add_indicators
 from lib.util.log import init_logger
+from lib.data_provider import DataProvider
 
 
 class RLTrader:
     feature_df = None
 
-    def __init__(self, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy, **kwargs):
+    def __init__(self, data_provider: DataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy, **kwargs):
         self.logger = init_logger(
             __name__, show_debug=kwargs.get('show_debug', True))
 
@@ -38,8 +39,7 @@ class RLTrader:
 
     def initialize_data(self, kwargs):
         if self.input_data_path is None:
-            self.input_data_path = path.join(
-                'data', 'input', 'coinbase_hourly.csv')
+            self.input_data_path = path.join('data', 'input', 'coinbase_hourly.csv')
 
         self.feature_df = pd.read_csv(self.input_data_path)
         self.feature_df = self.feature_df.drop(['Symbol'], axis=1)
