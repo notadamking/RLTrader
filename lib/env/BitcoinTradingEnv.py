@@ -109,7 +109,7 @@ class BitcoinTradingEnv(gym.Env):
         self.net_worths.append(
             self.balance + self.btc_held * current_price)
 
-        self.account_history.append({
+        self.account_history = self.account_history.append({
             'balance': self.balance,
             'btc_bought': btc_bought,
             'cost_of_btc': cost_of_btc,
