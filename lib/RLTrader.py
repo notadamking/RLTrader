@@ -150,9 +150,10 @@ class RLTrader:
             rewards = []
             n_episodes, reward_sum = 0, 0.0
 
+            state = None
             obs = validation_env.reset()
             while n_episodes < n_tests_per_eval:
-                action, _ = model.predict(obs)
+                action, state = model.predict(obs, state=state)
                 obs, reward, done, _ = validation_env.step(action)
                 reward_sum += reward
 
