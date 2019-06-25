@@ -236,9 +236,10 @@ class RLTrader:
         self.logger.info(
             f'Testing model ({self.study_name}__{model_epoch})')
 
+        state = None
         obs, done, rewards = test_env.reset(), False, []
         while not done:
-            action, _states = model.predict(obs)
+            action, state = model.predict(obs, state=state)
             obs, reward, done, _ = test_env.step(action)
 
             rewards.append(reward)
