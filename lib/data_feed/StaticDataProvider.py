@@ -5,8 +5,10 @@ import pandas as pd
 from lib.util.indicators import add_indicators
 from lib.data_feed.IDataProvider import IDataProvider
 
+
 class StaticDataProvider(IDataProvider):
     __data_path = "data/input"
+    __post_filters = []
 
     def __init__(self, exchange, symbol_pair: str, timeframe: int, unit: str):
         self.exchange = exchange
@@ -27,4 +29,10 @@ class StaticDataProvider(IDataProvider):
         feature_df = feature_df.sort_values(['Date'])
         feature_df = add_indicators(feature_df.reset_index())
 
+        for filter in self.__post_filters:
+            feature_df = filter(feature_df)
+
         return feature_df
+
+    def register_post_filter(self, callable):
+        self.__post_filters.append(callable)

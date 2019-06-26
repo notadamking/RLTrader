@@ -6,3 +6,5 @@ class IDataProvider:
     @classmethod
     def get_data(self): raise NotImplementedError
 
+    @classmethod
+    def register_filter(self, callable): raise NotImplementedError

@@ -31,11 +31,11 @@ else
     docker build --tag $N -f docker/Dockerfile.gpu .
 fi
 
-echo "CWD: $CWD - Procs: $CPU_LIMIT Memory: $MEM_LIMIT b"
+echo "CWD: $CWD - Procs: $CPU_LIMIT Memory: ${MEM_LIMIT}bytes"
 docker run \
     --user $(id -u):$(id -g) \
     --interactive \
-    --memory "${MEM_LIMIT}" \
+    --memory "${MEM_LIMIT}b" \
     --cpus "${CPU_LIMIT}" \
     --tty \
     --volume "${CWD}":/code \

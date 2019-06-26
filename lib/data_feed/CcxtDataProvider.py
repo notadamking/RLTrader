@@ -5,6 +5,7 @@ from lib.data_feed.IDataProvider import IDataProvider
 
 class CcxtDataProvider(IDataProvider):
     __columns = ['Date', 'Open', 'High', 'Low', 'Close', 'VolumeFrom']
+    __post_filters = []
 
     def __init__(self, exchange, symbol_pair: str, timeframe: int, unit: str):
         self.exchange = exchange
@@ -19,14 +20,18 @@ class CcxtDataProvider(IDataProvider):
         try:
             exchange = getattr (ccxt, self.exchange)()
         except AttributeError:
-            raise ModuleNotFoundError('Exchange "{}" not found. Please check the exchange is supported.'.format(args.exchange))
+            raise ModuleNotFoundError('''
+                Exchange "{}" not found. Please check if the exchange is supported.
+                '''.format(self.exchange))
 
         if not exchange.has["fetchOHLCV"]:
             raise AttributeError('Exchange "{}" does not support fetchOHLCV'.format(self.exchange))
 
         exchange.load_markets()
         if self.symbol_pair not in exchange.symbols:
-            raise IOError('The requested symbol ({}) is not available from {}\n'.format(self.symbol_pair, self.exchange))
+            raise IOError('''
+                The requested symbol ({}) is not available from {}
+                '''.format(self.symbol_pair, self.exchange))
 
         data = exchange.fetchOHLCV(symbol=self.symbol_pair, timeframe='{}{}'.format(self.timeframe, self.unit))
 
@@ -38,4 +43,10 @@ class CcxtDataProvider(IDataProvider):
         feature_df = feature_df.sort_values(['Date'])
         feature_df = add_indicators(feature_df.reset_index())
 
+        for filter in self.__post_filters:
+            feature_df = filter(feature_df)
+
         return feature_df
+
+    def register_post_filter(self, callable):
+        self.__post_filters.append(callable)
