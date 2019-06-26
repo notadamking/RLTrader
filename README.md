@@ -37,6 +37,8 @@ From there, you can train an agent with the best set of hyper-parameters, and la
 
 # Project Roadmap
 
+If you would like to contribute, here is the roadmap for the future of this project. To assign yourself to an item, please create an Issue/PR titled with the item from below and I will add your name to the list.
+
 ## Stage 0:
 * Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.) **[sph3rex, @lukeB]**
   * Map each data source to OHCLV format w/ same date/time format
