@@ -26,6 +26,5 @@ class StaticDataProvider(IDataProvider):
         feature_df['Date'] = feature_df['Date'].astype(str)
         feature_df = feature_df.sort_values(['Date'])
         feature_df = add_indicators(feature_df.reset_index())
-        feature_df.to_csv(data_path + '2', sep=',', index=False)
 
         return feature_df
