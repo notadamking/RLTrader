@@ -19,17 +19,14 @@ class CcxtDataProvider(IDataProvider):
         try:
             exchange = getattr (ccxt, self.exchange)()
         except AttributeError:
-            print('Exchange "{}" not found. Please check the exchange is supported.'.format(args.exchange))
-            return
+            raise ModuleNotFoundError('Exchange "{}" not found. Please check the exchange is supported.'.format(args.exchange))
 
         if not exchange.has["fetchOHLCV"]:
-            print('Exchange "{}" not support fetchOHLCV'.format(self.exchange))
-            return
+            raise AttributeError('Exchange "{}" does not support fetchOHLCV'.format(self.exchange))
 
         exchange.load_markets()
         if self.symbol_pair not in exchange.symbols:
-            print('The requested symbol ({}) is not available from {}\n'.format(self.symbol_pair, self.exchange))
-            return
+            raise IOError('The requested symbol ({}) is not available from {}\n'.format(self.symbol_pair, self.exchange))
 
         data = exchange.fetchOHLCV(symbol=self.symbol_pair, timeframe='{}{}'.format(self.timeframe, self.unit))
 

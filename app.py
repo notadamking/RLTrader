@@ -8,6 +8,7 @@ np.warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(description='Trainer')
 parser.add_argument("--data-provider", "-d", type=str, default="static")
+parser.add_argument("--exchange", "-e", type=str, default="coinbase")
 subparsers = parser.add_subparsers(help='Command', dest="command")
 
 optimize_parser = subparsers.add_parser('optimize', description='Optimize model parameters')
@@ -18,9 +19,9 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     if args.data_provider == 'static':
-        data_provider = StaticDataProvider(exchange='coinbase', timeframe='1', unit='h', symbol_pair='BTC/USD')
+        data_provider = StaticDataProvider(exchange=args.exchange, timeframe='1', unit='h', symbol_pair='BTC/USD')
     else:
-        data_provider = CcxtDataProvider(exchange='gdax', timeframe='1', unit='h', symbol_pair='BTC/USD')
+        data_provider = CcxtDataProvider(exchange=args.exchange, timeframe='1', unit='h', symbol_pair='BTC/USD')
 
     trader = RLTrader(data_provider)
 
