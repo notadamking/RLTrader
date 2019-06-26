@@ -1,3 +1,4 @@
+import ccxt
 import pandas as pd
 from lib.util.indicators import add_indicators
 from lib.data_feed.IDataProvider import IDataProvider
@@ -15,7 +16,22 @@ class CcxtDataProvider(IDataProvider):
         #if self.exchange.has['fetchOHLCV']:
         #    raise Exception('No OHCLV for this exchange')
 
-        data = self.exchange().fetchOHLCV(symbol=self.symbol_pair, timeframe='{}{}'.format(self.timeframe, self.unit))
+        try:
+            exchange = getattr (ccxt, self.exchange)()
+        except AttributeError:
+            print('Exchange "{}" not found. Please check the exchange is supported.'.format(args.exchange))
+            return
+
+        if not exchange.has["fetchOHLCV"]:
+            print('Exchange "{}" not support fetchOHLCV'.format(self.exchange))
+            return
+
+        exchange.load_markets()
+        if self.symbol_pair not in exchange.symbols:
+            print('The requested symbol ({}) is not available from {}\n'.format(self.symbol_pair, self.exchange))
+            return
+
+        data = exchange.fetchOHLCV(symbol=self.symbol_pair, timeframe='{}{}'.format(self.timeframe, self.unit))
 
         feature_df = pd.DataFrame(data)
         feature_df.columns = self.__columns

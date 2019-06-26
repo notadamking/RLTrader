@@ -20,8 +20,7 @@ if __name__ == '__main__':
     if args.data_provider == 'static':
         data_provider = StaticDataProvider(exchange='coinbase', timeframe='1', unit='h', symbol_pair='BTC/USD')
     else:
-        from ccxt import gdax
-        data_provider = CcxtDataProvider(gdax, timeframe='1', unit='h', symbol_pair='BTC/USD')
+        data_provider = CcxtDataProvider(exchange='gdax', timeframe='1', unit='h', symbol_pair='BTC/USD')
 
     trader = RLTrader(data_provider)
 
