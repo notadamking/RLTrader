@@ -35,6 +35,42 @@ This can take a while (hours to days depending on your hardware setup), but over
 
 From there, you can train an agent with the best set of hyper-parameters, and later test it on completely new data to verify the generalization of the algorithm.
 
+# Project Roadmap
+
+## Stage 0:
+* Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.) **[sph3rex, @lukeB]**
+  * Map each data source to OHCLV format w/ same date/time format
+* Implement live trading capabilities
+  * Allow model/agent to be passed in at run time
+  * Allow live data to be saved in a format that can be later trained on
+  * Enable paper-trading by default
+* Enable complete multi-processing throughout the environment
+  * Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
+  * Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
+* Find source of CPU bottlenecks to improve GPU utilization
+  * Improve speed of pandas methods by taking advantage of GPU
+  * Pre-process any data that is not currently being pre-processed
+* Find source of memory leak (in `RLTrader.optimize`) and squash it
+  
+## Stage 1:
+* Allow features to be added/removed at runtime
+  * Create simple API for turning off default features (e.g. prediction, indicators, etc.)
+  * Create simple API for adding new features to observation space
+* Add more optional features to the feature space
+  * Other exchange pair data (e.g. LTC/USD, ETH/USD, EOS/BTC, etc.)
+  * Twitter sentiment analysis
+  * Google trends analysis
+  * Order book data
+  * Market tick data
+* Create a generic prediction interface to allow any prediction function to be used
+  * Implement SARIMAX using generic interface
+  * Implement FB Prophet using generic interface
+  * Implement pre-trained LSTM using generic interface
+* Allow trained models to be saved to a local database (SQLite/Postgres)
+  * Save performance metrics with the model
+
+  
+
 # Contributing
 
 Contributions are encouraged and I will always do my best to get them implemented into the library ASAP. This project is meant to grow as the community around it grows. Let me know if there is anything that you would like to see in the future or if there is anything you feel is missing.
