@@ -14,37 +14,45 @@ from lib.data_feed import IDataProvider
 
 class RLTrader:
     feature_df = None
+    validation_set_percentage = 0.8
+    test_set_percentage = 0.8
+    optuna_study = None
+    study_name = None
 
-    def __init__(self, data_provider: IDataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy, **kwargs):
-        self.logger = init_logger(
-            __name__, show_debug=kwargs.get('show_debug', True))
+    def __init__(self, data_provider: IDataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy,
+                 **kwargs):
+        '''
+        :param data_provider:
+        :param model:
+        :param policy:
+        :param kwargs:
+        '''
+        self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
 
         self.data_feed = data_provider
         self.model = model
         self.policy = policy
         self.reward_strategy = kwargs.get('reward_strategy', 'sortino')
-        self.tensorboard_path = kwargs.get(
-            'tensorboard_path', path.join('data', 'tensorboard'))
-        self.input_data_path = kwargs.get('input_data_path', None)
-        self.params_db_path = kwargs.get(
-            'params_db_path', 'sqlite:///data/params.db')
+        self.tensorboard_path = kwargs.get('tensorboard_path', path.join('data', 'tensorboard'))
+        self.params_db_path = kwargs.get('params_db_path', 'sqlite:///data/params.db')
 
         self.model_verbose = kwargs.get('model_verbose', 1)
         self.nminibatches = kwargs.get('nminibatches', 1)
 
-        self.initialize_data(kwargs)
+        self.initialize_data(
+            kwargs.get('validation_set_percentage', 0.8),
+            kwargs.get('test_set_percentage', 0.8)
+        )
 
         self.logger.debug(f'Reward Strategy: {self.reward_strategy}')
 
-    def initialize_data(self, kwargs):
+    def initialize_data(self, validation_set_percentage: float, test_set_percentage: float):
         self.feature_df = self.data_feed.get_data()
 
-        self.validation_set_percentage = kwargs.get(
-            'validation_set_percentage', 0.8)
-        self.test_set_percentage = kwargs.get('test_set_percentage', 0.8)
+        self.validation_set_percentage = validation_set_percentage
+        self.test_set_percentage = test_set_percentage
 
-        self.logger.debug(
-            f'Initialized Features: {self.feature_df.columns.str.cat(sep=", ")}')
+        self.logger.debug(f'Initialized Features: {self.feature_df.columns.str.cat(sep=", ")}')
 
     def initialize_optuna(self, should_create: bool = False):
         self.study_name = f'{self.model.__class__.__name__}__{self.policy.__class__.__name__}__{self.reward_strategy}'
@@ -104,7 +112,8 @@ class RLTrader:
             'lam': trial.suggest_uniform('lam', 0.8, 1.)
         }
 
-    def optimize_params(self, trial, n_prune_evals_per_trial: int = 4, n_tests_per_eval: int = 1, speedup_factor: int = 10):
+    def optimize_params(self, trial, n_prune_evals_per_trial: int = 4, n_tests_per_eval: int = 1,
+                        speedup_factor: int = 10):
         env_params = self.optimize_env_params(trial)
 
         full_train_len = self.test_set_percentage * len(self.feature_df)
@@ -117,7 +126,7 @@ class RLTrader:
         validation_df = self.feature_df[optimize_train_len:]
 
         train_env = DummyVecEnv(
-            [lambda: BitcoinTradingEnv(train_df,  **env_params)])
+            [lambda: BitcoinTradingEnv(train_df, **env_params)])
         validation_env = DummyVecEnv(
             [lambda: BitcoinTradingEnv(validation_df, **env_params)])
 

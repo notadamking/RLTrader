@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+CWD=$(realpath "${SCRIPT_DIR}")
+
+N="btcoin-trader-rl-cpu"
+docker build --tag $N -f docker/Dockerfile.cpu .
+
+docker run \
+    --user $(id -u):$(id -g) \
+    --interactive \
+    --tty \
+    --volume "${CWD}":/code \
+    "$N" \
+        python -m unittest discover
