@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+if [[ -z $1 ]]; then
+    echo "Should have 1 argument: cpu or gpu"
+    exit
+fi
+
+if [[ $1 == 'gpu' ]]; then
+    GPU=1
+else
+    GPU=0
+fi
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+CWD=$(realpath "${SCRIPT_DIR}")
+
+if [ $GPU == 0 ]; then
+    N="btcoin-trader-rl-cpu"
+    docker build --tag $N -f docker/Dockerfile.cpu .
+else
+    N="btcoin-trader-rl-gpu"
+    docker build --tag $N -f docker/Dockerfile.gpu .
+fi
+
+echo "CWD: $CWD"
+docker run \
+    --interactive \
+    --tty \
+    --volume "${CWD}":/code \
+    "$N" \
+        python /code/app.py optimize && python /code/app.py train && python /code/app.py test
