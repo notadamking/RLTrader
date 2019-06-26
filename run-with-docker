@@ -22,8 +22,9 @@ else
     docker build --tag $N -f docker/Dockerfile.gpu .
 fi
 
-echo "CWD: $CWD"
+echo "CWD: $CWD"s
 docker run \
+    --user $(id -u):$(id -g) \
     --interactive \
     --tty \
     --volume "${CWD}":/code \
