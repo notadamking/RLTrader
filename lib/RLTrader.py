@@ -177,7 +177,7 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 1, iters_per_epoch: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
+    def train(self, n_epochs: int = 1, iters_per_epoch: int = 1):
         self.initialize_optuna()
 
         env_params = self.get_env_params()
@@ -206,9 +206,6 @@ class RLTrader:
             model_path = path.join(
                 'data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
             model.save(model_path)
-
-            if test_trained_model:
-                self.test(model_epoch, should_render=render_trained_model)
 
         self.logger.info(f'Trained {n_epochs} models')
 
