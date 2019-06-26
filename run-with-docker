@@ -13,6 +13,15 @@ fi
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 CWD=$(realpath "${SCRIPT_DIR}")
+MEM=$(cat /proc/meminfo | grep 'MemTotal:' |  awk '{ print $2 }')
+CPUS=$(cat /proc/cpuinfo | grep -P 'processor.+[0-7]+' | wc -l)
+
+MEM_LIMIT=$((MEM/4*3))
+CPU_LIMIT=$((CPUS/4*3))
+
+if [ $CPU_LIMIT == 0 ];then
+    CPU_LIMIT=1
+fi
 
 if [ $GPU == 0 ]; then
     N="btcoin-trader-rl-cpu"
@@ -22,10 +31,12 @@ else
     docker build --tag $N -f docker/Dockerfile.gpu .
 fi
 
-echo "CWD: $CWD"s
+echo "CWD: $CWD - Procs: $CPU_LIMIT Memory: $MEM_LIMIT b"
 docker run \
     --user $(id -u):$(id -g) \
     --interactive \
+    --memory "${MEM_LIMIT}" \
+    --cpus "${CPU_LIMIT}" \
     --tty \
     --volume "${CWD}":/code \
     "$N" \
