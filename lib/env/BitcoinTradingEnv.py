@@ -28,7 +28,7 @@ class BitcoinTradingEnv(gym.Env):
         self.stationary_df = self.stationary_df[self.stationary_df.columns.difference([
                                                                                       'index', 'Date'])]
         self.stationary_df = log_and_difference(self.stationary_df,
-                                                ['Open', 'High', 'Low', 'Close', 'Volume BTC', 'Volume USD'])
+                                                ['Open', 'High', 'Low', 'Close', 'VolumeFrom', 'VolumeTo'])
 
         self.benchmarks = kwargs.get('benchmarks', [])
 

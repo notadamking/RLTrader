@@ -1,5 +1,4 @@
 import optuna
-import pandas as pd
 import numpy as np
 
 from os import path
@@ -9,18 +8,18 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
 
 from lib.env.BitcoinTradingEnv import BitcoinTradingEnv
-from lib.util.indicators import add_indicators
 from lib.util.log import init_logger
-from lib.data_provider import DataProvider
+from lib.data_feed import IDataProvider
 
 
 class RLTrader:
     feature_df = None
 
-    def __init__(self, data_provider: DataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy, **kwargs):
+    def __init__(self, data_provider: IDataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy, **kwargs):
         self.logger = init_logger(
             __name__, show_debug=kwargs.get('show_debug', True))
 
+        self.data_feed = data_provider
         self.model = model
         self.policy = policy
         self.reward_strategy = kwargs.get('reward_strategy', 'sortino')
@@ -38,16 +37,7 @@ class RLTrader:
         self.logger.debug(f'Reward Strategy: {self.reward_strategy}')
 
     def initialize_data(self, kwargs):
-        if self.input_data_path is None:
-            self.input_data_path = path.join('data', 'input', 'coinbase_hourly.csv')
-
-        self.feature_df = pd.read_csv(self.input_data_path)
-        self.feature_df = self.feature_df.drop(['Symbol'], axis=1)
-        self.feature_df['Date'] = pd.to_datetime(
-            self.feature_df['Date'], format='%Y-%m-%d %I-%p')
-        self.feature_df['Date'] = self.feature_df['Date'].astype(str)
-        self.feature_df = self.feature_df.sort_values(['Date'])
-        self.feature_df = add_indicators(self.feature_df.reset_index())
+        self.feature_df = self.data_feed.get_data()
 
         self.validation_set_percentage = kwargs.get(
             'validation_set_percentage', 0.8)
@@ -249,4 +239,5 @@ class RLTrader:
                 test_env.render(mode='human')
 
         self.logger.info(
-            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(reward_sum)}')
+            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(str(reward_sum))}'
+        )

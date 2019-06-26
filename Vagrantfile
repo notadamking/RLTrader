@@ -51,8 +51,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     vm_config.vm.synced_folder '.', '/vagrant', disabled: false
 vm_config.vm.provision "default setup", type: "shell", inline: <<SCRIPT
-python3 -r /vagrant/requirements.txt
-grep -q 'cd /Vagrant' ~/.bashrc || echo -e "\n\ncd /Vagrant" > ~/.bashrc
+apt update
+apt install mpich
+DEBIAN_FRONTEND=noninteractive apt install python3-pip
+pip3 install -r /vagrant/requirements.txt
+grep -q 'cd /vagrant' ~/.bashrc || echo -e "\n\ncd /vagrant" > ~/.bashrc
 SCRIPT
 
     end

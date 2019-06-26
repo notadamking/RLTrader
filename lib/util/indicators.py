@@ -52,7 +52,7 @@ def add_indicators(df):
     df['ADI'] = ta.acc_dist_index(df["High"],
                                   df["Low"],
                                   df["Close"],
-                                  df["Volume BTC"])
+                                  df["VolumeFrom"])
     # df['OBV'] = ta.on_balance_volume(df["Close"],
     #                                  df["Volume BTC"])
     # df['CMF'] = ta.chaikin_money_flow(df["High"],

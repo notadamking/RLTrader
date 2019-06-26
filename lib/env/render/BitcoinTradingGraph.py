@@ -108,7 +108,7 @@ class BitcoinTradingGraph:
     def _render_volume(self, step_range, dates):
         self.volume_ax.clear()
 
-        volume = np.array(self.df['Volume BTC'].values[step_range])
+        volume = np.array(self.df['VolumeFrom'].values[step_range])
 
         self.volume_ax.plot(dates, volume,  color='blue')
         self.volume_ax.fill_between(dates, volume, color='blue', alpha=0.5)
