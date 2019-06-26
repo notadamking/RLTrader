@@ -22,9 +22,10 @@ class StaticDataProvider(IDataProvider):
         data_path = os.path.join(os.path.realpath(os.path.join(dir, '../../../')), self.__data_path, fn)
         feature_df = pd.read_csv(data_path)
         feature_df = feature_df.drop(['Symbol'], axis=1)
-        feature_df['Date'] = pd.to_datetime(feature_df['Date'], format='%Y-%m-%d %H-%M')
+        feature_df['Date'] = pd.to_datetime(feature_df['Date'], format='%Y-%m-%d %H:%M')
         feature_df['Date'] = feature_df['Date'].astype(str)
         feature_df = feature_df.sort_values(['Date'])
         feature_df = add_indicators(feature_df.reset_index())
+        feature_df.to_csv(data_path + '2', sep=',', index=False)
 
         return feature_df

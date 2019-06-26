@@ -213,6 +213,7 @@ class RLTrader:
         self.logger.info(f'Trained {n_epochs} models')
 
     def test(self, model_epoch: int = 0, should_render: bool = True):
+        self.initialize_optuna()
         env_params = self.get_env_params()
 
         train_len = int(self.test_set_percentage * len(self.feature_df))
@@ -221,8 +222,7 @@ class RLTrader:
         test_env = DummyVecEnv(
             [lambda: BitcoinTradingEnv(test_df, **env_params)])
 
-        model_path = path.join(
-            'data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
+        model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
         model = self.model.load(model_path, env=test_env)
 
         self.logger.info(
