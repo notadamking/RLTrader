@@ -19,7 +19,7 @@ class RLTrader:
     optuna_study = None
     study_name = None
 
-    def __init__(self, data_provider: IDataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy,
+    def __init__(self, provider: IDataProvider, model: BaseRLModel = PPO2, policy: BasePolicy = MlpLnLstmPolicy,
                  **kwargs):
         '''
         :param data_provider:
@@ -29,7 +29,7 @@ class RLTrader:
         '''
         self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
 
-        self.data_feed = data_provider
+        self.data_feed = provider
         self.model = model
         self.policy = policy
         self.reward_strategy = kwargs.get('reward_strategy', 'sortino')

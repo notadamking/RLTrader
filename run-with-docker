@@ -25,10 +25,10 @@ fi
 
 if [ $GPU == 0 ]; then
     N="btcoin-trader-rl-cpu"
-    docker build --tag $N -f docker/Dockerfile.cpu .
+    docker build --tag $N -f "$CWD/docker/Dockerfile.cpu" "$CWD"
 else
     N="btcoin-trader-rl-gpu"
-    docker build --tag $N -f docker/Dockerfile.gpu .
+    docker build --tag $N -f "$CWD/docker/Dockerfile.gpu" "$CWD"
 fi
 
 echo "CWD: $CWD - Procs: $CPU_LIMIT Memory: ${MEM_LIMIT}bytes"
