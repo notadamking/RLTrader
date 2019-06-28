@@ -1,4 +1,4 @@
-# Bitcoin-Trader-RL
+# RLTrader (Formerly Bitcoin-Trader-RL)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
