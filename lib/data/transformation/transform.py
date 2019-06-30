@@ -4,7 +4,12 @@ import numpy as np
 
 @abstractmethod
 def transform(df, inplace: bool = True, columns: list(str) = None, transform_fn=None):
-    transformed_df = df.copy().fillna(method='bfill')
+    if inplace is True:
+        transformed_df = df
+    else:
+        transformed_df = df.copy()
+
+    transformed_df = transformed_df.fillna(method='bfill')
 
     if transform_fn is None:
         raise NotImplementedError()
