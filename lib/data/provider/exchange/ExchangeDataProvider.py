@@ -10,12 +10,21 @@ from lib.data.provider.base.BaseDataProvider import BaseDataProvider, ProviderDa
 class ExchangeDataProvider(BaseDataProvider):
     __current_index = '2018-01-01T00:00:00Z'
 
-    def __init__(self, exchange_name: str = 'binance', symbol_pair: str = 'BTC/USDT', timeframe: str = '1h', __date_column: str = None, __ohlcv_columns: list = None):
+    def __init__(self,
+                 exchange_name: str = 'binance',
+                 symbol_pair: str = 'BTC/USDT',
+                 timeframe: str = '1h',
+                 start_date: datetime = None,
+                 __date_column: str = None,
+                 __ohlcv_columns: list = None):
         BaseDataProvider.__init__(self, __date_column, __ohlcv_columns)
 
         self.exchange_name = exchange_name
         self.symbol_pair = symbol_pair
         self.timeframe = timeframe
+
+        self.data_frame = None
+        self.start_date = start_date
 
         get_exchange_fn = getattr(ccxt, self.exchange_name)
 
@@ -39,11 +48,17 @@ class ExchangeDataProvider(BaseDataProvider):
     def __date_format(self) -> ProviderDateFormat:
         return ProviderDateFormat.TIMESTAMP_MS
 
-    def historical_ohlcv(self, since_8601: datetime = '2018-01-01T00:00:00Z') -> pd.DataFrame:
+    def historical_ohlcv(self):
+        if self.data_frame is None:
+            self.__load_historical_ohlcv()
+
+        return self.data_frame
+
+    def __load_historical_ohlcv(self) -> pd.DataFrame:
         columns = self.__columns()
 
-        data_frame = pd.DataFrame(None, columns=columns)
-        since = self.exchange.parse8601(since_8601)
+        self.data_frame = pd.DataFrame(None, columns=columns)
+        since = self.exchange.parse8601(self.start_date)
 
         while since < self.exchange.milliseconds():
             data = self.exchange.fetchOHLCV(
@@ -51,14 +66,25 @@ class ExchangeDataProvider(BaseDataProvider):
 
             if len(data):
                 since = data[len(data) - 1]['timestamp']
-                data_frame = data_frame.append(data, ignore_index=True)
+                self.data_frame = self.data_frame.append(
+                    data, ignore_index=True)
 
-        return self.prepare_data(data_frame)
+        self.data_frame = self.prepare_data(self.data_frame)
+        self.__current_index = 0
+
+        return self.data_frame
 
     def reset_ohlcv_index(self, index: datetime = '2018-01-01T00:00:00Z'):
         self.__current_index = index
 
     def next_ohlcv(self) -> pd.DataFrame:
+        if self.data_frame is not None:
+            frame = self.data_frame[self.__current_index]
+
+            self.__current_index += 1
+
+            return frame
+
         data = self.exchange.fetchOHLCV(
             symbol=self.symbol_pair, timeframe=self.timeframe, since=self.__current_index, limit=1)
 
