@@ -1,8 +1,13 @@
+from abc import abstractmethod
 import numpy as np
 
 
-def transform(df, columns=None, transform_fn=None):
+@abstractmethod
+def transform(df, inplace: bool = True, columns: list(str) = None, transform_fn=None):
     transformed_df = df.copy().fillna(method='bfill')
+
+    if transform_fn is None:
+        raise NotImplementedError()
 
     if columns is None:
         transformed_df = transform_fn(transformed_df)
@@ -13,13 +18,13 @@ def transform(df, columns=None, transform_fn=None):
     return transformed_df
 
 
-def max_min_normalize(df, columns=None):
+def max_min_normalize(df, inplace: bool = True, columns: list(str) = None):
     return transform(df, columns, lambda t_df: (t_df - t_df.min()) / (t_df.max() - t_df.min()))
 
 
-def difference(df, columns=None):
+def difference(df, inplace: bool = True, columns: list(str) = None):
     return transform(df, columns, lambda t_df: t_df - t_df.shift(1))
 
 
-def log_and_difference(df, columns=None):
+def log_and_difference(df, inplace: bool = True, columns: list(str) = None):
     return transform(df, columns, lambda t_df: np.log(t_df) - np.log(t_df).shift(1))

@@ -13,33 +13,41 @@ class ProviderDateFormat(Enum):
 
 
 class BaseDataProvider(object, metaclass=ABCMeta):
-    __data_columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
     __date_column = 'Date'
+    __ohlcv_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
 
     @abstractmethod
-    def __init__(self, __data_columns: list = None, __date_column: str = None):
-        if __data_columns is not None:
-            self.__data_columns = __data_columns
-
+    def __init__(self, __date_column: str = None, __ohlcv_columns: list = None):
         if __date_column is not None:
             self.__date_column = __date_column
+
+        if __ohlcv_columns is not None:
+            self.__ohlcv_columns = __ohlcv_columns
 
     @abstractmethod
     def __date_format(self) -> ProviderDateFormat:
         raise NotImplementedError
 
     @abstractmethod
-    def historical_ohclv(self) -> pd.DataFrame:
+    def historical_ohlcv(self) -> pd.DataFrame:
         raise NotImplementedError
 
     @abstractmethod
-    def next(self) -> pd.DataFrame:
+    def reset_ohlcv_index(self) -> int:
         raise NotImplementedError
 
+    @abstractmethod
+    def next_ohlcv(self) -> pd.DataFrame:
+        raise NotImplementedError
+
+    def __columns(self) -> list(str):
+        return [self.__date_column, *self.__ohlcv_columns]
+
     def prepare_data(self, data_frame: pd.DataFrame, inplace: bool = True) -> pd.DataFrame:
+        formatted = data_frame[self.__columns()]
         formatted = self.__format_date_column(
-            data_frame=data_frame, inplace=inplace)
-        formatted = self.__sort_by_date(data_frame=data_frame, inplace=inplace)
+            data_frame=formatted, inplace=inplace)
+        formatted = self.__sort_by_date(data_frame=formatted, inplace=inplace)
 
         return formatted
 
