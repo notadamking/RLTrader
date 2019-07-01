@@ -9,7 +9,6 @@ from lib.data.providers import BaseDataProvider
 from lib.data.features.transform import max_min_normalize, log_and_difference
 from lib.util.logger import init_logger
 
-
 class TradingEnv(gym.Env):
     '''A reinforcement trading environment made for use with gym-enabled algorithms'''
     metadata = {'render.modes': ['human', 'system', 'none']}
@@ -20,8 +19,11 @@ class TradingEnv(gym.Env):
 
         self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
 
+        self.usd_precision = 3
+        self.coin_precision = 8
+
         self.data_provider = data_provider
-        self.initial_balance = initial_balance
+        self.initial_balance = round(initial_balance, self.usd_precision)
         self.commission = commission
 
         self.reward_fn = kwargs.get('reward_fn', self._reward_incremental_profit)
@@ -69,18 +71,19 @@ class TradingEnv(gym.Env):
         cost_of_btc = 0
         revenue_from_sold = 0
 
-        if action == 0:
-            price = current_price * (1 + self.commission)
-            btc_bought = self.balance / price
-            cost_of_btc = self.balance
+        if action == 0 and self.balance >= 0.001:
+            price = round(current_price * (1 + self.commission), self.usd_precision)
+            btc_bought = round(self.balance / price, self.coin_precision)
+            cost_of_btc = round(self.balance, self.coin_precision)
 
             self.last_bought = self.current_step
             self.btc_held += btc_bought
             self.balance -= cost_of_btc
-        elif action == 1:
-            price = current_price * (1 - self.commission)
-            btc_sold = self.btc_held
-            revenue_from_sold = btc_sold * price
+            
+        elif action == 1 and self.btc_held >= 1e-8:
+            price = round(current_price * (1 - self.commission), self.usd_precision)
+            btc_sold = round(self.btc_held, self.coin_precision)
+            revenue_from_sold = round(btc_sold * price, self.usd_precision)
 
             self.last_sold = self.current_step
             self.btc_held -= btc_sold
@@ -91,7 +94,7 @@ class TradingEnv(gym.Env):
                                 'amount': btc_sold if btc_sold > 0 else btc_bought, 'total': revenue_from_sold if btc_sold > 0 else cost_of_btc,
                                 'type': 'sell' if btc_sold > 0 else 'buy'})
 
-        self.net_worths.append(self.balance + self.btc_held * current_price)
+        self.net_worths.append(round(self.balance + self.btc_held * current_price, self.usd_precision))
 
         self.account_history = self.account_history.append({
             'balance': self.balance,
