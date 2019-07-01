@@ -40,12 +40,12 @@ From there, you can train an agent with the best set of hyper-parameters, and la
 If you would like to contribute, here is the roadmap for the future of this project. To assign yourself to an item, please create an Issue/PR titled with the item from below and I will add your name to the list.
 
 ## Stage 0:
-* Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.) **[@sph3rex, @lukeB, @notadamking]** :white_check_mark:
-  * Map each data source to OHCLV format w/ same date/time format :white_check_mark:
+* ~Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.)~ **[@sph3rex, @lukeB, @notadamking]** :white_check_mark:
+  * ~Map each data source to OHCLV format w/ same date/time format~ **[@notadamking] :white_check_mark:
 * Implement live trading capabilities **[@notadamking]**
-  * Allow model/agent to be passed in at run time
-  * Allow live data to be saved in a format that can be later trained on
-  * Enable paper-trading by default
+  * Allow model/agent to be passed in at run time **[@notadamking]**
+  * Allow live data to be saved in a format that can be later trained on **[@notadamking]**
+  * Enable paper-trading by default **[@notadamking]**
 * Enable complete multi-processing throughout the environment
   * Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
   * Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
