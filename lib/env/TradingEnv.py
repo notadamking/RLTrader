@@ -59,7 +59,7 @@ class TradingEnv(gym.Env):
         return obs
 
     def _current_price(self):
-        return self.current_ohlcv['Close']
+        return float(self.current_ohlcv['Close'])
 
     def _take_action(self, action):
         current_price = self._current_price()
