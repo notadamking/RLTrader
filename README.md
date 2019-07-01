@@ -1,4 +1,4 @@
-# Bitcoin-Trader-RL
+# RLTrader (Formerly Bitcoin-Trader-RL)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
@@ -34,6 +34,44 @@ python ./optimize.py
 This can take a while (hours to days depending on your hardware setup), but over time it will print to the console as trials are completed. Once a trial is completed, it will be stored in `./data/params.db`, an SQLite database, from which we can pull hyper-parameters to train our agent.
 
 From there, you can train an agent with the best set of hyper-parameters, and later test it on completely new data to verify the generalization of the algorithm.
+
+# Project Roadmap
+
+If you would like to contribute, here is the roadmap for the future of this project. To assign yourself to an item, please create an Issue/PR titled with the item from below and I will add your name to the list.
+
+## Stage 0:
+* ~Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.)~ **[@sph3rex, @lukeB, @notadamking]** :white_check_mark:
+  * ~Map each data source to OHCLV format w/ same date/time format~ **[@notadamking] :white_check_mark:
+* Implement live trading capabilities **[@notadamking]**
+  * Allow model/agent to be passed in at run time **[@notadamking]**
+  * Allow live data to be saved in a format that can be later trained on **[@notadamking]**
+  * Enable paper-trading by default **[@notadamking]**
+* Enable complete multi-processing throughout the environment
+  * Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
+  * Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
+* Find source of CPU bottlenecks to improve GPU utilization
+  * Improve speed of pandas methods by taking advantage of GPU
+  * Pre-process any data that is not currently being pre-processed
+* Find source of memory leak (in `RLTrader.optimize`) and squash it
+  
+## Stage 1:
+* Allow features to be added/removed at runtime
+  * Create simple API for turning off default features (e.g. prediction, indicators, etc.)
+  * Create simple API for adding new features to observation space
+* Add more optional features to the feature space
+  * Other exchange pair data (e.g. LTC/USD, ETH/USD, EOS/BTC, etc.)
+  * Twitter sentiment analysis
+  * Google trends analysis
+  * Order book data
+  * Market tick data
+* Create a generic prediction interface to allow any prediction function to be used
+  * Implement SARIMAX using generic interface
+  * Implement FB Prophet using generic interface
+  * Implement pre-trained LSTM using generic interface
+* Allow trained models to be saved to a local database (SQLite/Postgres)
+  * Save performance metrics with the model
+
+  
 
 # Contributing
 
