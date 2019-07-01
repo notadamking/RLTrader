@@ -111,7 +111,7 @@ class TradingChart:
     def _render_trades(self, step_range, trades):
         for trade in trades:
             if trade['step'] in range(sys.maxsize)[step_range]:
-                date = self.df['Time'].values[trade['step']]
+                date = self.df['Date'].values[trade['step']]
                 close = self.df['Close'].values[trade['step']]
 
                 if trade['type'] == 'buy':
