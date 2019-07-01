@@ -4,36 +4,32 @@ import numpy as np
 
 from os import path
 from stable_baselines.common.base_class import BaseRLModel
-from stable_baselines.common.policies import BasePolicy, MlpLnLstmPolicy
+from stable_baselines.common.policies import BasePolicy, MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
 
-from lib.env.BitcoinTradingEnv import BitcoinTradingEnv
-from lib.util.indicators import add_indicators
-from lib.util.log import init_logger
+from lib.env.TradingEnv import TradingEnv
+from lib.data.providers.dates import ProviderDateFormat
+from lib.data.providers import StaticDataProvider
+from lib.data.features.indicators import add_indicators
+from lib.util.logger import init_logger
 
 
 class RLTrader:
-    feature_df = None
-
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpLnLstmPolicy, **kwargs):
-        self.logger = init_logger(
-            __name__, show_debug=kwargs.get('show_debug', True))
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, **kwargs):
+        self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
 
         self.Model = modelClass
         self.Policy = policyClass
-        self.reward_strategy = kwargs.get('reward_strategy', 'sortino')
-        self.tensorboard_path = kwargs.get(
-            'tensorboard_path', path.join('data', 'tensorboard'))
+        self.tensorboard_path = kwargs.get('tensorboard_path', None)
         self.input_data_path = kwargs.get('input_data_path', None)
-        self.params_db_path = kwargs.get(
-            'params_db_path', 'sqlite:///data/params.db')
+        self.params_db_path = kwargs.get('params_db_path', 'sqlite:///data/params.db')
+
+        self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_12)
 
         self.model_verbose = kwargs.get('model_verbose', 1)
         self.nminibatches = kwargs.get('nminibatches', 1)
-        self.validation_set_percentage = kwargs.get(
-            'validation_set_percentage', 0.8)
-        self.test_set_percentage = kwargs.get('test_set_percentage', 0.8)
+        self.train_split_percentage = kwargs.get('train_split_percentage', 0.8)
 
         self.initialize_data()
         self.initialize_optuna()
@@ -42,28 +38,24 @@ class RLTrader:
 
     def initialize_data(self):
         if self.input_data_path is None:
-            self.input_data_path = path.join(
-                'data', 'input', 'coinbase_hourly.csv')
+            self.input_data_path = path.join('data', 'input', 'coinbase_hourly.csv')
 
-        self.feature_df = pd.read_csv(self.input_data_path)
-        self.feature_df = self.feature_df.drop(['Symbol'], axis=1)
-        self.feature_df['Date'] = pd.to_datetime(
-            self.feature_df['Date'], format='%Y-%m-%d %I-%p')
-        self.feature_df['Date'] = self.feature_df['Date'].astype(str)
-        self.feature_df = self.feature_df.sort_values(['Date'])
-        self.feature_df = add_indicators(self.feature_df.reset_index())
+        data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
+                        'Low': 'Low', 'Close': 'Close', 'Volume': 'Volume BTC'}
 
-        self.logger.debug(
-            f'Initialized Features: {self.feature_df.columns.str.cat(sep=", ")}')
+        self.data_provider = StaticDataProvider(date_format=self.date_format,
+                                                csv_data_path=self.input_data_path,
+                                                data_columns=data_columns)
+
+        self.logger.debug(f'Initialized Features: {self.data_provider.columns}')
 
     def initialize_optuna(self):
         try:
-            train_env = DummyVecEnv(
-                [lambda: BitcoinTradingEnv(self.feature_df)])
+            train_env = DummyVecEnv([lambda: TradingEnv(self.data_provider)])
             model = self.Model(self.Policy, train_env, nminibatches=1)
-            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}__{self.reward_strategy}'
+            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}'
         except:
-            self.study_name = f'UnknownModel__UnknownPolicy__{self.reward_strategy}'
+            self.study_name = f'UnknownModel__UnknownPolicy'
 
         self.optuna_study = optuna.create_study(
             study_name=self.study_name, storage=self.params_db_path, load_if_exists=True)
@@ -76,14 +68,6 @@ class RLTrader:
         except:
             self.logger.debug('No trials have been finished yet.')
 
-    def get_env_params(self):
-        params = self.optuna_study.best_trial.params
-        return {
-            'reward_strategy': self.reward_strategy,
-            'forecast_steps': int(params['forecast_steps']),
-            'forecast_alpha': params['forecast_alpha'],
-        }
-
     def get_model_params(self):
         params = self.optuna_study.best_trial.params
         return {
@@ -94,12 +78,6 @@ class RLTrader:
             'cliprange': params['cliprange'],
             'noptepochs': int(params['noptepochs']),
             'lam': params['lam'],
-        }
-
-    def optimize_env_params(self, trial):
-        return {
-            'forecast_steps': int(trial.suggest_loguniform('forecast_steps', 1, 200)),
-            'forecast_alpha': trial.suggest_uniform('forecast_alpha', 0.001, 0.30),
         }
 
     def optimize_agent_params(self, trial):
@@ -116,34 +94,25 @@ class RLTrader:
             'lam': trial.suggest_uniform('lam', 0.8, 1.)
         }
 
-    def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1, speedup_factor: int = 10):
-        env_params = self.optimize_env_params(trial)
+    def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
+        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, validation_provider = train_provider.split_provider_train_test(self.train_split_percentage)
 
-        full_train_len = self.test_set_percentage * len(self.feature_df)
-        optimize_train_len = int(
-            self.validation_set_percentage * full_train_len)
-        train_len = int(optimize_train_len / speedup_factor)
-        train_start = optimize_train_len - train_len
+        del test_provider
 
-        train_df = self.feature_df[train_start:optimize_train_len]
-        validation_df = self.feature_df[optimize_train_len:]
-
-        train_env = DummyVecEnv(
-            [lambda: BitcoinTradingEnv(train_df,  **env_params)])
-        validation_env = DummyVecEnv(
-            [lambda: BitcoinTradingEnv(validation_df, **env_params)])
+        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
+        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider)])
 
         model_params = self.optimize_agent_params(trial)
         model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         last_reward = -np.finfo(np.float16).max
-        evaluation_interval = int(
-            train_len / n_prune_evals_per_trial)
+        n_steps_per_eval = int(len(train_provider.data_frame) / n_prune_evals_per_trial)
 
         for eval_idx in range(n_prune_evals_per_trial):
             try:
-                model.learn(evaluation_interval)
+                model.learn(n_steps_per_eval)
             except AssertionError:
                 raise
 
@@ -171,7 +140,7 @@ class RLTrader:
 
         return -1 * last_reward
 
-    def optimize(self, n_trials: int = 10, n_parallel_jobs: int = 4, *optimize_params):
+    def optimize(self, n_trials: int = 20, n_parallel_jobs: int = 1, *optimize_params):
         try:
             self.optuna_study.optimize(
                 self.optimize_params, n_trials=n_trials, n_jobs=n_parallel_jobs, *optimize_params)
@@ -188,14 +157,12 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 1, iters_per_epoch: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
-        env_params = self.get_env_params()
+    def train(self, n_epochs: int = 10, steps_per_epoch: int = 1000, test_trained_model: bool = False, render_trained_model: bool = False):
+        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
 
-        train_len = int(self.test_set_percentage * len(self.feature_df))
-        train_df = self.feature_df[:train_len]
+        del test_provider
 
-        train_env = DummyVecEnv(
-            [lambda: BitcoinTradingEnv(train_df, **env_params)])
+        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
 
         model_params = self.get_model_params()
 
@@ -204,16 +171,12 @@ class RLTrader:
 
         self.logger.info(f'Training for {n_epochs} epochs')
 
-        n_timesteps = len(train_df) * iters_per_epoch
-
         for model_epoch in range(0, n_epochs):
-            self.logger.info(
-                f'[{model_epoch}] Training for: {n_timesteps} time steps')
+            self.logger.info(f'[{model_epoch}] Training for: {steps_per_epoch} time steps')
 
-            model.learn(total_timesteps=n_timesteps)
+            model.learn(total_timesteps=steps_per_epoch)
 
-            model_path = path.join(
-                'data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
+            model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
             model.save(model_path)
 
             if test_trained_model:
@@ -222,20 +185,16 @@ class RLTrader:
         self.logger.info(f'Trained {n_epochs} models')
 
     def test(self, model_epoch: int = 0, should_render: bool = True):
-        env_params = self.get_env_params()
+        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
 
-        train_len = int(self.test_set_percentage * len(self.feature_df))
-        test_df = self.feature_df[train_len:]
+        del train_provider
 
-        test_env = DummyVecEnv(
-            [lambda: BitcoinTradingEnv(test_df, **env_params)])
+        test_env = DummyVecEnv([lambda: TradingEnv(test_provider)])
 
-        model_path = path.join(
-            'data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
+        model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
         model = self.Model.load(model_path, env=test_env)
 
-        self.logger.info(
-            f'Testing model ({self.study_name}__{model_epoch})')
+        self.logger.info(f'Testing model ({self.study_name}__{model_epoch})')
 
         state = None
         obs, done, rewards = test_env.reset(), False, []
