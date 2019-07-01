@@ -46,7 +46,7 @@ class StaticDataProvider(BaseDataProvider):
         return self.data_frame
 
     def has_next_ohlcv(self) -> bool:
-        return self._current_index > len(self.data_frame) - 1
+        return self._current_index < len(self.data_frame)
 
     def reset_ohlcv_index(self) -> int:
         self._current_index = 0
