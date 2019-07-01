@@ -94,7 +94,7 @@ class RLTrader:
             'lam': trial.suggest_uniform('lam', 0.8, 1.)
         }
 
-    def optimize_params(self, trial, n_steps_per_eval: int = 1000, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
+    def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
         train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
         train_provider, validation_provider = train_provider.split_provider_train_test(self.train_split_percentage)
 
@@ -108,6 +108,7 @@ class RLTrader:
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         last_reward = -np.finfo(np.float16).max
+        n_steps_per_eval = int(len(train_provider.data_frame) / n_prune_evals_per_trial)
 
         for eval_idx in range(n_prune_evals_per_trial):
             try:
