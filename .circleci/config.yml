@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.7.2
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements-test.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r requirements-test.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements-test.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            mkdir test-reports
+            pytest --junitxml=test-reports/junit.xml
+      - store_test_results:
+          path: test-reports
+      - store_artifacts:
+          path: test-reports 

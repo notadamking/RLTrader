@@ -1,5 +1,7 @@
 # RLTrader (Formerly Bitcoin-Trader-RL)
 
+[![CircleCI](https://circleci.com/gh/notadamking/RLTrader.svg?style=svg)](https://circleci.com/gh/notadamking/RLTrader)
+
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
 Discord server: https://discord.gg/ZZ7BGWh
@@ -21,6 +23,8 @@ pip install -r requirements.txt
 
 The requirements include the `tensorflow-gpu` library, though if you do not have access to a GPU, you should replace this requirement with `tensorflow`.
 
+To run the tests included with the library you'll need to addtionally install the libraries found in `requirements-test.txt`.
+
 # Optimizing, Training, and Testing
 
 While you could just let the agent train and run with the default PPO2 hyper-parameters, your agent would likely not be very profitable. The `stable-baselines` library provides a great set of default parameters that work for most problem domains, but we need to better.
@@ -40,9 +44,9 @@ From there, you can train an agent with the best set of hyper-parameters, and la
 If you would like to contribute, here is the roadmap for the future of this project. To assign yourself to an item, please create an Issue/PR titled with the item from below and I will add your name to the list.
 
 ## Stage 0:
-* Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.) **[sph3rex, @lukeB]**
+* Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.) **[@sph3rex, @lukeB, @notadamking]**
   * Map each data source to OHCLV format w/ same date/time format
-* Implement live trading capabilities
+* Implement live trading capabilities **[@notadamking]**
   * Allow model/agent to be passed in at run time
   * Allow live data to be saved in a format that can be later trained on
   * Enable paper-trading by default

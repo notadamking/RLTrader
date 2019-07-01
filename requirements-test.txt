@@ -1,0 +1,5 @@
+pytest
+ccxt
+numpy
+pandas
+ta
