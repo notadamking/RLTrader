@@ -1,7 +1,7 @@
 import pytest
 
-from lib.data.provider.dates import ProviderDateFormat
-from lib.data.provider import StaticDataProvider, ExchangeDataProvider
+from lib.data.providers.dates import ProviderDateFormat
+from lib.data.providers import StaticDataProvider, ExchangeDataProvider
 
 
 @pytest.fixture

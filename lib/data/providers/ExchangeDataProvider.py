@@ -5,12 +5,13 @@ import pandas as pd
 from typing import Dict
 from datetime import datetime
 
-from lib.data.provider.dates import ProviderDateFormat
-from lib.data.provider import BaseDataProvider
+from lib.data.providers.dates import ProviderDateFormat
+from lib.data.providers import BaseDataProvider
 
 
 class ExchangeDataProvider(BaseDataProvider):
-    __current_index = '2018-01-01T00:00:00Z'
+    _current_index = '2018-01-01T00:00:00Z'
+    _has_loaded_historical = False
 
     def __init__(self,
                  exchange_name: str = 'binance',
@@ -48,47 +49,55 @@ class ExchangeDataProvider(BaseDataProvider):
                 f'The requested symbol {self.symbol_pair} is not available from {self.exchange_name}')
 
     def historical_ohlcv(self):
-        if self.data_frame is None:
+        if self._has_loaded_historical is False:
             self._load_historical_ohlcv()
 
         return self.data_frame
 
     def _load_historical_ohlcv(self) -> pd.DataFrame:
-        self.data_frame = pd.DataFrame(None, columns=self._pre_columns())
+        self.data_frame = pd.DataFrame(None, columns=self.in_columns)
         since = self.exchange.parse8601(self.start_date)
 
         while since < self.exchange.milliseconds():
-            data = self.exchange.fetchOHLCV(
-                symbol=self.symbol_pair, timeframe=self.timeframe, since=since)
+            data = self.exchange.fetchOHLCV(symbol=self.symbol_pair, timeframe=self.timeframe, since=since)
 
             if len(data):
                 since = data[len(data) - 1]['timestamp']
-                self.data_frame = self.data_frame.append(
-                    data, ignore_index=True)
+                self.data_frame = self.data_frame.append(data, ignore_index=True)
 
         self.data_frame = self.prepare_data(self.data_frame)
-        self.__current_index = 0
+        self._current_index = 0
+        self._has_loaded_historical = True
 
         return self.data_frame
 
+    def has_next_ohlcv(self) -> bool:
+        return True
+
     def reset_ohlcv_index(self, index: datetime = '2018-01-01T00:00:00Z'):
-        self.__current_index = index
+        self._current_index = index
 
     def next_ohlcv(self) -> pd.DataFrame:
-        if self.data_frame is not None:
-            frame = self.data_frame[self.__current_index]
+        if self._has_loaded_historical:
+            frame = self.data_frame[self._current_index]
 
-            self.__current_index += 1
+            self._current_index += 1
 
             return frame
 
-        data = self.exchange.fetchOHLCV(
-            symbol=self.symbol_pair, timeframe=self.timeframe, since=self.__current_index, limit=1)
+        data = self.exchange.fetchOHLCV(symbol=self.symbol_pair, timeframe=self.timeframe,
+                                        since=self._current_index, limit=1)
 
         if len(data):
-            self.__current_index = data[len(data) - 1]['timestamp']
-            data_frame = pd.DataFrame(data, columns=self._pre_columns())
+            self._current_index = data[len(data) - 1]['timestamp']
+            frame = pd.DataFrame(data, columns=self.in_columns)
+            frame = self.prepare_data(frame)
 
-            return self.prepare_data(data_frame)
+            if self.data_frame is None:
+                self.data_frame = pd.DataFrame(None, columns=self.columns)
+
+            self.data_frame = self.data_frame.append(frame, ignore_index=True)
+
+            return frame
 
         return None

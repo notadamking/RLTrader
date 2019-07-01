@@ -5,29 +5,28 @@ from typing import List, Dict
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
 
-from lib.data.provider.dates import ProviderDateFormat
+from lib.data.providers.dates import ProviderDateFormat
 
 
 class BaseDataProvider(object, metaclass=ABCMeta):
-    __data_columns = {'Date':  'Date',  'Open': 'Open', 'High': 'High',
-                      'Low': 'Low', 'Close': 'Close', 'Volume': 'Volume'}
-    __column_map = {'Date':  'Date',  'Open': 'Open', 'High': 'High',
-                    'Low': 'Low', 'Close': 'Close', 'Volume': 'Volume'}
-    __custom_datetime_format = None
+    columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+    in_columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+    custom_datetime_format = None
 
     @abstractmethod
     def __init__(self, date_format: ProviderDateFormat, **kwargs):
         self.date_format = date_format
 
-        self.__custom_datetime_format: str = kwargs.get(
-            'custom_datetime_format', None)
+        self.custom_datetime_format: str = kwargs.get('custom_datetime_format', None)
 
         data_columns: Dict[str, str] = kwargs.get('data_columns', None)
 
         if data_columns is not None:
-            self.__data_columns = data_columns
-            self.__column_map = dict(
-                zip(data_columns.values(), data_columns.keys()))
+            self.data_columns = data_columns
+            self.columns = list(data_columns.keys())
+            self.in_columns = list(data_columns.values())
+        else:
+            self.data_columns = dict(zip(self.columns, self.in_columns))
 
     @abstractmethod
     def historical_ohlcv(self) -> pd.DataFrame:
@@ -38,18 +37,18 @@ class BaseDataProvider(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def has_next_ohlcv(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def next_ohlcv(self) -> pd.DataFrame:
         raise NotImplementedError
 
-    def _columns(self) -> List[str]:
-        return self.__data_columns.keys()
-
-    def _pre_columns(self) -> List[str]:
-        return self.__data_columns.values()
-
     def prepare_data(self, data_frame: pd.DataFrame, inplace: bool = True) -> pd.DataFrame:
-        formatted = data_frame[self._pre_columns()]
-        formatted = formatted.rename(index=str, columns=self.__column_map)
+        column_map = dict(zip(self.in_columns, self.columns))
+
+        formatted = data_frame[self.in_columns]
+        formatted = formatted.rename(index=str, columns=column_map)
 
         formatted = self._format_date_column(formatted, inplace=inplace)
         formatted = self._sort_by_date(formatted, inplace=inplace)
@@ -62,7 +61,7 @@ class BaseDataProvider(object, metaclass=ABCMeta):
         else:
             formatted = data_frame.copy()
 
-        formatted = formatted.sort_values(['Timestamp'])
+        formatted = formatted.sort_values(self.data_columns['Date'])
 
         return formatted
 
@@ -72,30 +71,35 @@ class BaseDataProvider(object, metaclass=ABCMeta):
         else:
             formatted = data_frame.copy()
 
-        date_col = formatted.loc[:, self.__data_columns['Date']]
+        date_col = self.data_columns['Date']
+        date_frame = formatted.loc[:, date_col]
 
         if self.date_format is ProviderDateFormat.TIMESTAMP_UTC:
-            date_col = date_col.apply(
+            formatted[date_col] = date_frame.apply(
                 lambda x: datetime.utcfromtimestamp(x).strftime('%Y-%m-%d %H:%M'))
-            date_col = pd.to_datetime(date_col, format='%Y-%m-%d %H:%M')
+            formatted[date_col] = pd.to_datetime(date_frame, format='%Y-%m-%d %H:%M')
         elif self.date_format is ProviderDateFormat.TIMESTAMP_MS:
-            date_col = date_col = pd.to_datetime(date_col, unit='ms')
+            formatted[date_col] = pd.to_datetime(date_frame, unit='ms')
         elif self.date_format is ProviderDateFormat.DATETIME_HOUR_12:
-            date_col = pd.to_datetime(date_col, format='%Y-%m-%d %I-%p')
+            formatted[date_col] = pd.to_datetime(date_frame, format='%Y-%m-%d %I-%p')
         elif self.date_format is ProviderDateFormat.DATETIME_HOUR_24:
-            date_col = pd.to_datetime(date_col, format='%Y-%m-%d %H')
+            formatted[date_col] = pd.to_datetime(date_frame, format='%Y-%m-%d %H')
         elif self.date_format is ProviderDateFormat.DATETIME_MINUTE_12:
-            date_col = pd.to_datetime(date_col, format='%Y-%m-%d %I:%M-%p')
+            formatted[date_col] = pd.to_datetime(date_frame, format='%Y-%m-%d %I:%M-%p')
         elif self.date_format is ProviderDateFormat.DATETIME_MINUTE_24:
-            date_col = pd.to_datetime(date_col, format='%Y-%m-%d %H:%M')
+            formatted[date_col] = pd.to_datetime(date_frame, format='%Y-%m-%d %H:%M')
         elif self.date_format is ProviderDateFormat.DATE:
-            date_col = pd.to_datetime(date_col, format='%Y-%m-%d')
+            formatted[date_col] = pd.to_datetime(date_frame, format='%Y-%m-%d')
         elif self.date_format is ProviderDateFormat.CUSTOM_DATIME:
-            date_col = pd.to_datetime(
-                date_col, format=self.__custom_datetime_format, infer_datetime_format=True)
+            formatted[date_col] = pd.to_datetime(
+                date_frame, format=self.custom_datetime_format, infer_datetime_format=True)
         else:
             raise NotImplementedError
 
-        data_frame['Timestamp'] = date_col.values.astype(np.int64) // 10 ** 9
+        print("before", date_col)
+
+        formatted[date_col] = formatted[date_col].values.astype(np.int64) // 10 ** 9
+
+        print("after", date_col)
 
         return formatted
