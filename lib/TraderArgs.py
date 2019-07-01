@@ -1,13 +1,13 @@
 import argparse
 import os
 
+
 class TraderArgs:
     def __init__(self):
         formatter = argparse.ArgumentDefaultsHelpFormatter
         self.parser = argparse.ArgumentParser(description='Trainer', formatter_class=formatter)
 
         self.parser.add_argument("--data-provider", "-d", type=str, default="static")
-        self.parser.add_argument("--exchange", "-e", type=str, default="coinbase")
         self.parser.add_argument("--pair", "-p", type=str, default="BTC/USD")
 
         subparsers = self.parser.add_subparsers(help='Command', dest="command")
@@ -22,6 +22,7 @@ class TraderArgs:
             help='Tensorboard path',
             dest='tensorboard_path'
         )
+
         optimize_parser.add_argument('--params-db-path', type=str, default='sqlite:///data/params.db',
                                      help='Params path')
         optimize_parser.add_argument('--verbose-model', type=int, default=1, help='Verbose model', dest='model_verbose')

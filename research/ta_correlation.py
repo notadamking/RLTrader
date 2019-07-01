@@ -10,7 +10,7 @@ ta_df = pd.DataFrame()
 
 ta_df['RSI'] = ta.rsi(df["Close"])
 ta_df['MFI'] = ta.money_flow_index(
-    df["High"], df["Low"], df["Close"], df["VolumeFrom"])
+    df["High"], df["Low"], df["Close"], df["Volume BTC"])
 ta_df['TSI'] = ta.tsi(df["Close"])
 ta_df['UO'] = ta.uo(df["High"], df["Low"], df["Close"])
 ta_df['Stoch'] = ta.stoch(df["High"], df["Low"], df["Close"])

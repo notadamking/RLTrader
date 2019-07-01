@@ -1,8 +1,29 @@
 #!/usr/bin/env bash
 
+set -e
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+CWD=$(realpath "${SCRIPT_DIR}")
+
 if [[ -z $1 ]]; then
     echo "Should have 1 argument: cpu or gpu"
     exit
+fi
+
+if [[ -n $2 ]]; then
+    docker build \
+        --tag 'bitcoin-trader-rl-postgres' \
+        --build-arg ID=$(id -u) \
+        --build-arg GI=$(id -g) \
+        -f "$CWD/docker/Dockerfile.backend" "$CWD"
+
+    mkdir -p "$CWD/data/postgres"
+    docker run \
+        --detach \
+        --tty \
+        --user "$(id -u):$(id -g)" \
+        --volume "$CWD/data/postgres":"/var/lib/postgresql/data/trader-data" \
+      bitcoin-trader-rl-postgres
 fi
 
 if [[ $1 == 'gpu' ]]; then
@@ -11,8 +32,6 @@ else
     GPU=0
 fi
 
-SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-CWD=$(realpath "${SCRIPT_DIR}")
 MEM=$(cat /proc/meminfo | grep 'MemTotal:' |  awk '{ print $2 }')
 CPUS=$(cat /proc/cpuinfo | grep -P 'processor.+[0-7]+' | wc -l)
 

@@ -15,10 +15,8 @@ class TestRLTrader(unittest.TestCase):
         data_mock = Mock(StaticDataProvider)
         sut = RLTrader(data_mock, args)
 
-        self.assertEqual(sut.reward_strategy, args.reward_strategy)
         self.assertEqual(sut.tensorboard_path, args.tensorboard_path)
         self.assertEqual(sut.params_db_path, args.params_db_path)
         self.assertEqual(sut.model_verbose, args.model_verbose)
         self.assertEqual(sut.nminibatches, args.nminibatches)
-        self.assertEqual(sut.validation_set_percentage, args.validation_set_percentage)
         self.assertEqual(sut.test_set_percentage, args.test_set_percentage)
