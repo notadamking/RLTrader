@@ -160,7 +160,7 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 10, steps_per_epoch: int = 1000, test_trained_model: bool = False, render_trained_model: bool = False):
+    def train(self, n_epochs: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
         train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
 
         del test_provider
@@ -173,6 +173,8 @@ class RLTrader:
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         self.logger.info(f'Training for {n_epochs} epochs')
+
+        steps_per_epoch = len(train_provider.data_frame)
 
         for model_epoch in range(0, n_epochs):
             self.logger.info(f'[{model_epoch}] Training for: {steps_per_epoch} time steps')
