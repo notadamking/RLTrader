@@ -1,3 +1,4 @@
+import os
 import optuna
 import numpy as np
 
@@ -31,15 +32,17 @@ class RLTrader:
         self.nminibatches = kwargs.get('nminibatches', 1)
         self.train_split_percentage = kwargs.get('train_split_percentage', 0.8)
 
-        self.initialize_data(kwargs.get('data_provider', 'static'))
+        self.initialize_data(kwargs.get('data_provider', 'static'), kwargs.get('input_data_path', 'static'))
         self.initialize_optuna()
 
         self.logger.debug(f'Initialize RLTrader: {self.study_name}')
 
-    def initialize_data(self, provider):
+    def initialize_data(self, provider, input_data_path):
         if 'static' == provider:
             if self.input_data_path is None:
-                self.input_data_path = 'coinbase-1h-btc-usd.csv'
+                class_dir = os.path.dirname(__file__)
+                data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(input_data_path)))
+                self.input_data_path = os.path.join(data_path, 'coinbase-1h-btc-usd.csv')
 
             data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
                             'Low': 'Low', 'Close': 'Close', 'Volume': 'VolumeFrom'}

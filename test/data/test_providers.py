@@ -9,7 +9,7 @@ def csv_provider():
     data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
                     'Low': 'Low', 'Close': 'Close', 'Volume': 'VolumeFrom'}
     provider = StaticDataProvider(
-        date_format=ProviderDateFormat.DATETIME_HOUR_24, csv_data_path="coinbase-1h-btc-usd.csv", data_columns=data_columns
+        date_format=ProviderDateFormat.DATETIME_HOUR_24, csv_data_path="data/input/coinbase-1h-btc-usd.csv", data_columns=data_columns
     )
 
     assert csv_provider is not None

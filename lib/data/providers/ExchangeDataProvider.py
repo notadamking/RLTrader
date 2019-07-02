@@ -25,11 +25,8 @@ class ExchangeDataProvider(BaseDataProvider):
         self.symbol_pair = symbol_pair
         self.timeframe = timeframe
 
-        passed_df = kwargs.get('data_frame', None)
-        if passed_df:
-            self.data_frame = passed_df
-        else:
-            self.data_frame = None
+        self.data_frame = kwargs.get('data_frame', None)
+
         self.start_date = start_date
 
         get_exchange_fn = getattr(ccxt, self.exchange_name)

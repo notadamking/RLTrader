@@ -16,23 +16,14 @@ class StaticDataProvider(BaseDataProvider):
 
         if data_frame is not None:
             self.data_frame = data_frame
-        elif csv_data_path is not None:
-            data_dir = StaticDataProvider.get_data_location()
-            csv_data_path = os.path.join(data_dir, csv_data_path)
-            print(csv_data_path)
-            if os.path.isfile(csv_data_path):
-                self.data_frame = pd.read_csv(csv_data_path)
+        elif csv_data_path is not None and os.path.isfile(csv_data_path):
+            self.data_frame = pd.read_csv(csv_data_path)
         else:
             raise ValueError(
                 'StaticDataProvider requires either a data_frame or csv_data_path argument.')
 
         if not skip_prepare_data:
             self.data_frame = self.prepare_data(self.data_frame)
-
-    @staticmethod
-    def get_data_location():
-        class_dir = os.path.dirname(__file__)
-        return os.path.realpath(os.path.join(class_dir, "../../../data/input"))
 
     @staticmethod
     def from_prepared(data_frame: pd.DataFrame, date_format: ProviderDateFormat, **kwargs):

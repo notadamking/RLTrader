@@ -23,3 +23,6 @@ class TestRLTrader(unittest.TestCase):
             self.assertEqual(sut.model_verbose, args.model_verbose)
             self.assertEqual(sut.nminibatches, args.nminibatches)
             self.assertEqual(sut.train_split_percentage, args.train_split_percentage)
+            self.assertEqual(sut.input_data_path, args.input_data_path)
+            self.assertEqual(sut.model_verbose, args.model_verbose)
+            self.assertEqual(sut.input_data_path, args.input_data_path)
