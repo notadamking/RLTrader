@@ -1,0 +1,10 @@
+FROM python:3.6.8-jessie
+
+ADD ./requirements.no-gpu.txt /code/
+ADD ./requirements.tests.txt /code/requirements.txt
+
+WORKDIR /code
+
+RUN apt-get update \
+    && apt-get install -y build-essential mpich \
+    && pip install -r requirements.txt
