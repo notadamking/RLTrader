@@ -10,13 +10,14 @@ from stable_baselines import PPO2
 from lib.env.TradingEnv import TradingEnv
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import StaticDataProvider, ExchangeDataProvider
-from lib.util.logger import init_logger
 
 
 class RLTrader:
     data_provider = None
+    study_name = None
+
     def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, **kwargs):
-        self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
+        self.logger = kwargs.get('logger', None)
 
         self.Model = modelClass
         self.Policy = policyClass

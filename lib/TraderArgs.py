@@ -7,8 +7,9 @@ class TraderArgs:
         formatter = argparse.ArgumentDefaultsHelpFormatter
         self.parser = argparse.ArgumentParser(description='Trainer', formatter_class=formatter)
 
-        self.parser.add_argument("--data-provider", "-d", type=str, default="static")
+        self.parser.add_argument("--data-provider", "-o", type=str, default="static")
         self.parser.add_argument("--pair", "-p", type=str, default="BTC/USD")
+        self.parser.add_argument("--no-debug", "-n", action='store_true')
 
         subparsers = self.parser.add_subparsers(help='Command', dest="command")
 
@@ -27,9 +28,7 @@ class TraderArgs:
                                      help='Params path')
         optimize_parser.add_argument('--verbose-model', type=int, default=1, help='Verbose model', dest='model_verbose')
         optimize_parser.add_argument('--mini-batches', type=int, default=1, help='Mini batches', dest='nminibatches')
-        optimize_parser.add_argument('--validation-set-percentage', type=int, default=0.8,
-                                     help='Validation set percentage')
-        optimize_parser.add_argument('--test-set-percentage', type=int, default=0.8, help='Test set percentage')
+        optimize_parser.add_argument('--train-split-percentage', type=int, default=0.8, help='Train set percentage')
 
         train_parser = subparsers.add_parser('train', description='Train model')
         train_parser.add_argument('--epochs', type=int, default=1, help='Number of epochs to train')
