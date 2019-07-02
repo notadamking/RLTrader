@@ -87,26 +87,26 @@ ta_df['DCLI'] = ta.donchian_channel_lband_indicator(df["Close"])
 ta_df['ADI'] = ta.acc_dist_index(df["High"],
                                  df["Low"],
                                  df["Close"],
-                                 df["Volume BTC"])
+                                 df["VolumeFrom"])
 ta_df['OBV'] = ta.on_balance_volume(df["Close"],
-                                    df["Volume BTC"])
+                                    df["VolumeFrom"])
 ta_df['OBVM'] = ta.on_balance_volume_mean(
     df["Close"],
-    df["Volume BTC"])
+    df["VolumeFrom"])
 ta_df['CMF'] = ta.chaikin_money_flow(df["High"],
                                      df["Low"],
                                      df["Close"],
-                                     df["Volume BTC"])
+                                     df["VolumeFrom"])
 ta_df['FI'] = ta.force_index(df["Close"],
-                             df["Volume BTC"])
+                             df["VolumeFrom"])
 ta_df['EM'] = ta.ease_of_movement(df["High"],
                                   df["Low"],
                                   df["Close"],
-                                  df["Volume BTC"])
+                                  df["VolumeFrom"])
 ta_df['VPT'] = ta.volume_price_trend(df["Close"],
-                                     df["Volume BTC"])
+                                     df["VolumeFrom"])
 ta_df['NVI'] = ta.negative_volume_index(df["Close"],
-                                        df["Volume BTC"])
+                                        df["VolumeFrom"])
 
 ta_df['DR'] = ta.daily_return(df["Close"])
 ta_df['DLR'] = ta.daily_log_return(df["Close"])

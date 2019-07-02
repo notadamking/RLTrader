@@ -1,8 +1,7 @@
-import time
 import ccxt
 import pandas as pd
 
-from typing import Dict
+from typing import Tuple
 from datetime import datetime
 
 from lib.data.providers.dates import ProviderDateFormat
@@ -26,7 +25,8 @@ class ExchangeDataProvider(BaseDataProvider):
         self.symbol_pair = symbol_pair
         self.timeframe = timeframe
 
-        self.data_frame = None
+        self.data_frame = kwargs.get('data_frame', None)
+
         self.start_date = start_date
 
         get_exchange_fn = getattr(ccxt, self.exchange_name)
@@ -53,6 +53,18 @@ class ExchangeDataProvider(BaseDataProvider):
             self._load_historical_ohlcv()
 
         return self.data_frame
+
+    def split_provider_train_test(self, train_split_percentage: float = 0.8) -> Tuple[
+        BaseDataProvider, BaseDataProvider]:
+        train_len = int(train_split_percentage * len(self.data_frame))
+
+        train_df = self.data_frame[:train_len].copy()
+        test_df = self.data_frame[train_len:].copy()
+
+        train_provider = ExchangeDataProvider(data_frame=train_df, date_format=self.date_format)
+        test_provider = ExchangeDataProvider(data_frame=test_df, date_format=self.date_format)
+
+        return train_provider, test_provider
 
     def _load_historical_ohlcv(self) -> pd.DataFrame:
         self.data_frame = pd.DataFrame(None, columns=self.in_columns)
