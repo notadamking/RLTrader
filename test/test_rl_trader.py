@@ -1,13 +1,11 @@
-import unittest
 from unittest import mock
 from unittest.mock import MagicMock
 
 from lib.RLTrader import RLTrader
 from lib.TraderArgs import TraderArgs
 
-
-class TestRLTrader(unittest.TestCase):
-    def setUp(self):
+class TestRLTrader():
+    def setup_class(self):
         self.parser = TraderArgs().get_parser()
 
     @mock.patch.object(RLTrader, 'initialize_data', return_value=True)
@@ -18,11 +16,11 @@ class TestRLTrader(unittest.TestCase):
         sut = RLTrader(**vars(args), logger=MagicMock())
         sut.study_name = 'test'
         with mock.patch('lib.util.logger.init_logger'):
-            self.assertEqual(sut.tensorboard_path, args.tensorboard_path)
-            self.assertEqual(sut.params_db_path, args.params_db_path)
-            self.assertEqual(sut.model_verbose, args.model_verbose)
-            self.assertEqual(sut.nminibatches, args.nminibatches)
-            self.assertEqual(sut.train_split_percentage, args.train_split_percentage)
-            self.assertEqual(sut.input_data_path, args.input_data_path)
-            self.assertEqual(sut.model_verbose, args.model_verbose)
-            self.assertEqual(sut.input_data_path, args.input_data_path)
+            assert(sut.tensorboard_path == args.tensorboard_path)
+            assert(sut.params_db_path == args.params_db_path)
+            assert(sut.model_verbose == args.model_verbose)
+            assert(sut.nminibatches == args.nminibatches)
+            assert(sut.train_split_percentage == args.train_split_percentage)
+            assert(sut.input_data_path == args.input_data_path)
+            assert(sut.model_verbose == args.model_verbose)
+            assert(sut.input_data_path == args.input_data_path)
