@@ -12,7 +12,7 @@ fi
 
 if [[ -n $2 ]]; then
     docker build \
-        --tag 'bitcoin-trader-rl-postgres' \
+        --tag 'trader-rl-postgres' \
         --build-arg ID=$(id -u) \
         --build-arg GI=$(id -g) \
         -f "$CWD/docker/Dockerfile.backend" "$CWD"
@@ -23,7 +23,7 @@ if [[ -n $2 ]]; then
         --tty \
         --user "$(id -u):$(id -g)" \
         --volume "$CWD/data/postgres":"/var/lib/postgresql/data/trader-data" \
-      bitcoin-trader-rl-postgres
+      trader-rl-postgres
 fi
 
 if [[ $1 == 'gpu' ]]; then

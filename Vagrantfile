@@ -28,7 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.hostmanager.manage_host = true
         config.hostmanager.manage_guest = true
         config.hostmanager.ignore_private_ip = false
-        config.hostmanager.aliases = ['bitcoin-trader-rl.local']
+        config.hostmanager.aliases = ['trader-rl.local']
     end
 
     # Set auto_update to false, if you do NOT want to check the correct virtual-box-guest-additions version when booting VM
@@ -36,17 +36,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vbguest.auto_update = false
     end
 
-    config.vm.define 'bitcoin-trader-rl-vagrant', primary: true do |vm_config|
+    config.vm.define 'trader-rl-vagrant', primary: true do |vm_config|
         vm_config.vm.box = 'ubuntu/bionic64'
         vm_config.vm.box_check_update = true
         vm_config.vm.network 'private_network', ip: machine_ip_address
         vm_config.vm.provider 'virtualbox' do |vb|
-        vb.name = 'bitcoin-trader-rl'
+        vb.name = 'trader-rl'
         vb.cpus = 8
         vb.memory = 20480
     end
 
-    vm_config.vm.hostname = 'bitcoin-trader-rl'
+    vm_config.vm.hostname = 'trader-rl'
     vm_config.ssh.insert_key = false
 
     vm_config.vm.synced_folder '.', '/vagrant', disabled: false
