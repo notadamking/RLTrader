@@ -1,0 +1,6 @@
+language: python
+
+services:
+  docker
+
+script: bash run-tests-with-docker
