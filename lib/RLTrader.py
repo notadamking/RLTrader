@@ -189,8 +189,8 @@ class RLTrader:
             model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
             model.save(model_path)
 
-            # if test_trained_model:
-            #   self.test(model_epoch, should_render=render_trained_model)
+            if test_trained_model:
+                self.test(model_epoch, should_render=render_trained_model)
 
         self.logger.info(f'Trained {n_epochs} models')
 
@@ -207,8 +207,8 @@ class RLTrader:
         self.logger.info(f'Testing model ({self.study_name}__{model_epoch})')
 
         state = None
-        obs, done, rewards = test_env.reset(), False, []
-        while not done:
+        obs, done, rewards = test_env.reset(), [False], []
+        while not all(done):
             action, state = model.predict(obs, state=state)
             obs, reward, done, _ = test_env.step(action)
 
