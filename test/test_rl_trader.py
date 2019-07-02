@@ -2,11 +2,12 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 from lib.RLTrader import RLTrader
-from lib.TraderArgs import TraderArgs
+from lib.cli.RLTraderCLI import RLTraderCLI
+
 
 class TestRLTrader():
     def setup_class(self):
-        self.parser = TraderArgs().get_parser()
+        self.parser = RLTraderCLI().get_parser()
 
     @mock.patch.object(RLTrader, 'initialize_data', return_value=True)
     @mock.patch.object(RLTrader, 'optimize', return_value=True)

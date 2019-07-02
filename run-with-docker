@@ -59,4 +59,4 @@ docker run \
     --tty \
     --volume "${CWD}":/code \
     "$N" \
-        python /code/app.py opt-train-test
+        python /code/cli.py opt-train-test
