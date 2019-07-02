@@ -59,4 +59,4 @@ docker run \
     --tty \
     --volume "${CWD}":/code \
     "$N" \
-        python /code/app.py optimize && python /code/app.py train && python /code/app.py test
+        python /code/app.py opt-train-test

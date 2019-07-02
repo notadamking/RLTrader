@@ -8,7 +8,7 @@ class TraderArgs:
         self.parser = argparse.ArgumentParser(description='Trainer', formatter_class=formatter)
 
         self.parser.add_argument("--data-provider", "-o", type=str, default="static")
-        self.parser.add_argument("--input-data-path", "-t", type=str, default="data/input")
+        self.parser.add_argument("--input-data-path", "-t", type=str, default="data/input/coinbase-1h-btc-usd.csv")
         self.parser.add_argument("--pair", "-p", type=str, default="BTC/USD")
         self.parser.add_argument("--debug", "-n", action='store_false')
         self.parser.add_argument('--mini-batches', type=int, default=1, help='Mini batches', dest='nminibatches')

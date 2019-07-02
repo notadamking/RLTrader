@@ -41,8 +41,7 @@ class RLTrader:
         if 'static' == provider:
             if self.input_data_path is None:
                 class_dir = os.path.dirname(__file__)
-                data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(input_data_path)))
-                self.input_data_path = os.path.join(data_path, 'coinbase-1h-btc-usd.csv')
+                self.input_data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(input_data_path)))
 
             data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
                             'Low': 'Low', 'Close': 'Close', 'Volume': 'VolumeFrom'}
