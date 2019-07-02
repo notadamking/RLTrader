@@ -3,6 +3,7 @@ import optuna
 import numpy as np
 
 from os import path
+from typing import Dict
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.policies import BasePolicy, MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -17,11 +18,12 @@ class RLTrader:
     data_provider = None
     study_name = None
 
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, **kwargs):
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, exchange_args: Dict = {}, **kwargs):
         self.logger = kwargs.get('logger', None)
 
         self.Model = modelClass
         self.Policy = policyClass
+        self.exchange_args = exchange_args
         self.tensorboard_path = kwargs.get('tensorboard_path', None)
         self.input_data_path = kwargs.get('input_data_path', None)
         self.params_db_path = kwargs.get('params_db_path', 'sqlite:///data/params.db')
@@ -50,8 +52,7 @@ class RLTrader:
                                                     csv_data_path=self.input_data_path,
                                                     data_columns=data_columns)
         else:
-            self.data_provider = ExchangeDataProvider()
-
+            self.data_provider = ExchangeDataProvider(**self.exchange_args)
 
         self.logger.debug(f'Initialized Features: {self.data_provider.columns}')
 
@@ -101,8 +102,8 @@ class RLTrader:
         }
 
     def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
-        train_provider, validation_provider = train_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
+        train_provider, validation_provider = train_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
 
@@ -164,7 +165,7 @@ class RLTrader:
         return self.optuna_study.trials_dataframe()
 
     def train(self, n_epochs: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
 
@@ -193,7 +194,7 @@ class RLTrader:
         self.logger.info(f'Trained {n_epochs} models')
 
     def test(self, model_epoch: int = 0, should_render: bool = True):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del train_provider
 
@@ -216,4 +217,4 @@ class RLTrader:
                 test_env.render(mode='human')
 
         self.logger.info(
-            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.mean(rewards))}')
+            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(str(np.mean(rewards)))}')
