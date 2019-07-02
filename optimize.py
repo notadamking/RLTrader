@@ -13,7 +13,7 @@ def optimize_code(params):
 
 if __name__ == '__main__':
     # The no of process you wanna launch
-    n_process = 2
+    n_process = multiprocessing.cpu_count()
     # Database path param, recommended to replace with your own MySQL or PostgreSQL path
     params = {
         'params_db_path': 'sqlite:///data/params.db'
