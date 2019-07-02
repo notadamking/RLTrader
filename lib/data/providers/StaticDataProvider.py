@@ -29,8 +29,7 @@ class StaticDataProvider(BaseDataProvider):
     def from_prepared(data_frame: pd.DataFrame, date_format: ProviderDateFormat, **kwargs):
         return StaticDataProvider(date_format=date_format, data_frame=data_frame, skip_prepare_data=True, **kwargs)
 
-    def split_provider_train_test(self, train_split_percentage: float = 0.8) -> Tuple[
-        BaseDataProvider, BaseDataProvider]:
+    def split_data_train_test(self, train_split_percentage: float = 0.8) -> Tuple[BaseDataProvider, BaseDataProvider]:
         train_len = int(train_split_percentage * len(self.data_frame))
 
         train_df = self.data_frame[:train_len].copy()

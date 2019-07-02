@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from typing import List, Dict
+from typing import Tuple, List, Dict
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
 
@@ -27,6 +27,10 @@ class BaseDataProvider(object, metaclass=ABCMeta):
             self.in_columns = list(data_columns.values())
         else:
             self.data_columns = dict(zip(self.columns, self.in_columns))
+
+    @abstractmethod
+    def split_data_train_test(self, train_split_percentage: float = 0.8) -> Tuple[BaseDataProvider, BaseDataProvider]:
+        raise NotImplementedError
 
     @abstractmethod
     def historical_ohlcv(self) -> pd.DataFrame:
