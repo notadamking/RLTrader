@@ -1,2 +1,2 @@
--r requirements.no-cpu.txt
+-r requirements.no-gpu.txt
 pytest
