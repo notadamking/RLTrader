@@ -5,8 +5,8 @@ from lib.RLTrader import RLTrader
 np.warnings.filterwarnings('ignore')
 
 
-def optimize_code():
-    trader = RLTrader()
+def optimize_code(params):
+    trader = RLTrader(**params)
 
     trader.optimize()
 
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # multiprocessing
     # creating processes
     for i in range(n_process):
-        process.append(multiprocessing.Process(target=optimize_code(), kwargs=params))
+        process.append(multiprocessing.Process(target=optimize_code, args=(params,)))
 
     # start processes
     for p in process:
