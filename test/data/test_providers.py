@@ -1,7 +1,7 @@
 import pytest
 
 from lib.data.providers.dates import ProviderDateFormat
-from lib.data.providers import StaticDataProvider, ExchangeDataProvider
+from lib.data.providers import StaticDataProvider
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ class TestPrepareData():
     def test_date_sort(self, csv_provider):
         ohlcv = csv_provider.historical_ohlcv()
 
-        timestamps = ohlcv['Timestamp'].values
+        timestamps = ohlcv['Date'].values
         sorted_timestamps = sorted(timestamps.copy())
 
         assert (timestamps == sorted_timestamps).all()

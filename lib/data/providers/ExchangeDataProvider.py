@@ -1,8 +1,7 @@
-import time
 import ccxt
 import pandas as pd
 
-from typing import Dict, Tuple
+from typing import Tuple
 from datetime import datetime
 
 from lib.data.providers.dates import ProviderDateFormat
