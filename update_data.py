@@ -30,6 +30,7 @@ async def get_pages(url1: str, url2: str):
     print('>> pending: ', pending)  # will be empty if using default return_when setting
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(get_pages(url, url2))
-loop.close()
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(get_pages(url, url2))
+    loop.close()
