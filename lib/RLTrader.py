@@ -6,7 +6,7 @@ import numpy as np
 from os import path
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.policies import BasePolicy, MlpPolicy
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
@@ -14,6 +14,14 @@ from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import StaticDataProvider
 from lib.data.features.indicators import add_indicators
 from lib.util.logger import init_logger
+
+
+def make_env(data_provider, seed):
+    def _init():
+        env = TradingEnv(data_provider)
+        env.seed(seed)
+        return env
+    return _init
 
 
 class RLTrader:
@@ -29,8 +37,8 @@ class RLTrader:
         self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_12)
 
         self.model_verbose = kwargs.get('model_verbose', 1)
-        self.n_cpu = kwargs.get('n_cpu', os.cpu_count())
-        self.nminibatches = kwargs.get('nminibatches', self.n_cpu)
+        self.num_envs = kwargs.get('num_envs', os.cpu_count())
+        self.nminibatches = kwargs.get('nminibatches', self.num_envs)
         self.train_split_percentage = kwargs.get('train_split_percentage', 0.8)
 
         self.initialize_data()
@@ -53,8 +61,8 @@ class RLTrader:
 
     def initialize_optuna(self):
         try:
-            train_env = SubprocVecEnv([lambda: [TradingEnv(self.data_provider) for _ in range(self.n_cpu)]])
-            model = self.Model(self.Policy, train_env, nminibatches=self.nminibatches)
+            train_env = DummyVecEnv([lambda: TradingEnv(self.data_provider)])
+            model = self.Model(self.Policy, train_env, nminibatches=1)
             self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}'
         except:
             self.study_name = f'UnknownModel__UnknownPolicy'
@@ -102,8 +110,8 @@ class RLTrader:
 
         del test_provider
 
-        train_env = SubprocVecEnv([lambda: [TradingEnv(train_provider) for _ in range(self.n_cpu)]])
-        validation_env = SubprocVecEnv([lambda: [TradingEnv(validation_provider) for _ in range(self.n_cpu)]])
+        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(self.num_envs)])
+        validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(self.num_envs)])
 
         model_params = self.optimize_agent_params(trial)
         model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
@@ -128,7 +136,7 @@ class RLTrader:
                 obs, reward, done, _ = validation_env.step(action)
                 reward_sum += reward
 
-                if done:
+                if all(done):
                     rewards.append(reward_sum)
                     reward_sum = 0.0
                     n_episodes += 1
@@ -164,7 +172,7 @@ class RLTrader:
 
         del test_provider
 
-        train_env = SubprocVecEnv([lambda: [TradingEnv(train_provider) for _ in range(self.n_cpu)]])
+        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(self.num_envs)])
 
         model_params = self.get_model_params()
 
@@ -191,7 +199,7 @@ class RLTrader:
 
         del train_provider
 
-        test_env = SubprocVecEnv([lambda: TradingEnv(test_provider) for _ in range(self.n_cpu)])
+        test_env = SubprocVecEnv([make_env(test_provider, i) for i in range(self.num_envs)])
 
         model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
         model = self.Model.load(model_path, env=test_env)
@@ -206,8 +214,8 @@ class RLTrader:
 
             rewards.append(reward)
 
-           # if should_render:
-            #    test_env.render(mode='human')
+        #    if should_render:
+        #        test_env.render(mode='human')
 
         self.logger.info(
-            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.mean(rewards))}')
+            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.cumsum(rewards))}')
