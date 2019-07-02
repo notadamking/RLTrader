@@ -4,7 +4,7 @@
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 CWD=$(realpath "${SCRIPT_DIR}")
 
-N="btcoin-trader-rl-cpu"
+N="trader-rl-cpu"
 docker build --tag $N -f docker/Dockerfile.tests "$CWD"
 
 docker run \
@@ -13,4 +13,4 @@ docker run \
     --tty \
     --volume "${CWD}":/code \
     "$N" \
-        python -m pytest -p no:warnings
+        python -m pytest -p no:warnings /code/test

@@ -1,6 +1,6 @@
+sudo: required
 language: python
-
 services:
-  docker
+  - docker
 
 script: bash run-tests-with-docker
