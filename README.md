@@ -1,7 +1,6 @@
 # RLTrader (Formerly Bitcoin-Trader-RL)
 
-[![Build Status](https://travis-ci.org/notadamking/Bitcoin-Trader-RL.svg?branch=master)](https://travis-ci.org/notadamking/Bitcoin-Trader-RL)/Bitcoin-Trader-RL.svg?branch=master)
-
+[![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
@@ -43,46 +42,47 @@ From there, you can train an agent with the best set of hyper-parameters, and la
 If you would like to contribute, here is the roadmap for the future of this project. To assign yourself to an item, please create an Issue/PR titled with the item from below and I will add your name to the list.
 
 ## Stage 0:
-* ~Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.)~ **[@sph3rex, @lukeB, @notadamking]** :white_check_mark:
-  * ~Map each data source to OHCLV format w/ same date/time format~ **[@notadamking] :white_check_mark:
-* Implement live trading capabilities **[@notadamking]**
-  * Allow model/agent to be passed in at run time **[@notadamking]**
-  * Allow live data to be saved in a format that can be later trained on **[@notadamking]**
-  * Enable paper-trading by default **[@notadamking]**
-* Enable complete multi-processing throughout the environment
-  * Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
-  * Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
-* Find source of CPU bottlenecks to improve GPU utilization
-  * Improve speed of pandas methods by taking advantage of GPU
-  * Pre-process any data that is not currently being pre-processed
-* Find source of memory leak (in `RLTrader.optimize`) and squash it
-* Allow features to be added/removed at runtime
-  * Create simple API for turning off default features (e.g. prediction, indicators, etc.)
-  * Create simple API for adding new features to observation space
-* Add more optional features to the feature space
-  * Other exchange pair data (e.g. LTC/USD, ETH/USD, EOS/BTC, etc.)
-  * Twitter sentiment analysis
-  * Google trends analysis
-  * Order book data
-  * Market tick data
-* Create a generic prediction interface to allow any prediction function to be used
-  * Implement SARIMAX using generic interface
-  * Implement FB Prophet using generic interface
-  * Implement pre-trained LSTM using generic interface
-* Allow trained models to be saved to a local database (SQLite/Postgres)
-  * Save performance metrics with the model
+
+- ~Create a generic data loader for inputting multiple data sources (.csv, API, in-memory, etc.)~ **[@sph3rex, @lukeB, @notadamking]** :white_check_mark:
+  - ~Map each data source to OHCLV format w/ same date/time format~ \*\*[@notadamking] :white_check_mark:
+- Implement live trading capabilities **[@notadamking]**
+  - Allow model/agent to be passed in at run time **[@notadamking]**
+  - Allow live data to be saved in a format that can be later trained on **[@notadamking]**
+  - Enable paper-trading by default **[@notadamking]**
+- Enable complete multi-processing throughout the environment
+  - Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
+  - Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
+- Find source of CPU bottlenecks to improve GPU utilization
+  - Improve speed of pandas methods by taking advantage of GPU
+  - Pre-process any data that is not currently being pre-processed
+- Find source of memory leak (in `RLTrader.optimize`) and squash it
+- Allow features to be added/removed at runtime
+  - Create simple API for turning off default features (e.g. prediction, indicators, etc.)
+  - Create simple API for adding new features to observation space
+- Add more optional features to the feature space
+  - Other exchange pair data (e.g. LTC/USD, ETH/USD, EOS/BTC, etc.)
+  - Twitter sentiment analysis
+  - Google trends analysis
+  - Order book data
+  - Market tick data
+- Create a generic prediction interface to allow any prediction function to be used
+  - Implement SARIMAX using generic interface
+  - Implement FB Prophet using generic interface
+  - Implement pre-trained LSTM using generic interface
+- Allow trained models to be saved to a local database (SQLite/Postgres)
+  - Save performance metrics with the model
 
 ## Stage 1:
-* Implement a Generative Aderversarial Network (GAN) for accurately simulating asset price fluctuations
-  * Implement Monte Carlo rollouts to find the most probabilistic outcomes
-* Implement a custom RL agent using ODEs or other state-of-the-art algorithm (relational recurrent networks)
-  * Incorporate GAN predictions into model state
-* Implement `xgboost` and Stacked Auto-encoders to improve the feature selection of the model
-* Experiment with Auto-decoders to remove noise from the observation space
-* Implement self-play in a multi-process environment to improve model exploration
-  * Experiment with dueling actors vs tournament of dueling agents
 
-  
+- Implement a Generative Aderversarial Network (GAN) for accurately simulating asset price fluctuations
+  - Implement Monte Carlo rollouts to find the most probabilistic outcomes
+- Implement a custom RL agent using ODEs or other state-of-the-art algorithm (relational recurrent networks)
+  - Incorporate GAN predictions into model state
+- Implement `xgboost` and Stacked Auto-encoders to improve the feature selection of the model
+- Experiment with Auto-decoders to remove noise from the observation space
+- Implement self-play in a multi-process environment to improve model exploration
+
+  - Experiment with dueling actors vs tournament of dueling agents
 
 # Contributing
 
