@@ -1,8 +1,9 @@
+import os
 import optuna
-import pandas as pd
 import numpy as np
 
 from os import path
+from typing import Dict
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.policies import BasePolicy, MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
@@ -10,26 +11,30 @@ from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
 from lib.data.providers.dates import ProviderDateFormat
-from lib.data.providers import StaticDataProvider
-from lib.data.features.indicators import add_indicators
+from lib.data.providers import StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
 
 
 class RLTrader:
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, **kwargs):
-        self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
+    data_provider = None
+    study_name = None
+
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, exchange_args: Dict = {}, **kwargs):
+        self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.Model = modelClass
         self.Policy = policyClass
+        self.exchange_args = exchange_args
         self.tensorboard_path = kwargs.get('tensorboard_path', None)
-        self.input_data_path = kwargs.get('input_data_path', None)
+        self.input_data_path = kwargs.get('input_data_path', 'data/input/coinbase-1h-btc-usd.csv')
         self.params_db_path = kwargs.get('params_db_path', 'sqlite:///data/params.db')
 
-        self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_12)
+        self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_24)
 
         self.model_verbose = kwargs.get('model_verbose', 1)
         self.nminibatches = kwargs.get('nminibatches', 1)
         self.train_split_percentage = kwargs.get('train_split_percentage', 0.8)
+        self.data_provider = kwargs.get('data_provider', 'static')
 
         self.initialize_data()
         self.initialize_optuna()
@@ -37,15 +42,19 @@ class RLTrader:
         self.logger.debug(f'Initialize RLTrader: {self.study_name}')
 
     def initialize_data(self):
-        if self.input_data_path is None:
-            self.input_data_path = path.join('data', 'input', 'coinbase_hourly.csv')
+        if self.data_provider == 'static':
+            if not os.path.isfile(self.input_data_path):
+                class_dir = os.path.dirname(__file__)
+                self.input_data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(self.input_data_path)))
 
-        data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
-                        'Low': 'Low', 'Close': 'Close', 'Volume': 'Volume BTC'}
+            data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
+                            'Low': 'Low', 'Close': 'Close', 'Volume': 'VolumeFrom'}
 
-        self.data_provider = StaticDataProvider(date_format=self.date_format,
-                                                csv_data_path=self.input_data_path,
-                                                data_columns=data_columns)
+            self.data_provider = StaticDataProvider(date_format=self.date_format,
+                                                    csv_data_path=self.input_data_path,
+                                                    data_columns=data_columns)
+        elif self.data_provider == 'exchange':
+            self.data_provider = ExchangeDataProvider(**self.exchange_args)
 
         self.logger.debug(f'Initialized Features: {self.data_provider.columns}')
 
@@ -95,8 +104,8 @@ class RLTrader:
         }
 
     def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
-        train_provider, validation_provider = train_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
+        train_provider, validation_provider = train_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
 
@@ -158,7 +167,7 @@ class RLTrader:
         return self.optuna_study.trials_dataframe()
 
     def train(self, n_epochs: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
 
@@ -187,7 +196,7 @@ class RLTrader:
         self.logger.info(f'Trained {n_epochs} models')
 
     def test(self, model_epoch: int = 0, should_render: bool = True):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del train_provider
 
@@ -210,4 +219,4 @@ class RLTrader:
                 test_env.render(mode='human')
 
         self.logger.info(
-            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.mean(rewards))}')
+            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(str(np.mean(rewards)))}')

@@ -1,7 +1,7 @@
 import pandas as pd
+import os
 
-from typing import Dict, Tuple
-
+from typing import Tuple
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider
 
@@ -9,14 +9,15 @@ from lib.data.providers import BaseDataProvider
 class StaticDataProvider(BaseDataProvider):
     _current_index = 0
 
-    def __init__(self, date_format: ProviderDateFormat, data_frame: pd.DataFrame = None, csv_data_path: str = None, skip_prepare_data: bool = False, **kwargs):
+    def __init__(self, date_format: ProviderDateFormat, data_frame: pd.DataFrame = None, csv_data_path: str = None,
+                 skip_prepare_data: bool = False, **kwargs):
         BaseDataProvider.__init__(self, date_format, **kwargs)
 
         self.kwargs = kwargs
 
         if data_frame is not None:
             self.data_frame = data_frame
-        elif csv_data_path is not None:
+        elif csv_data_path is not None and os.path.isfile(csv_data_path):
             self.data_frame = pd.read_csv(csv_data_path)
         else:
             raise ValueError(
@@ -29,7 +30,7 @@ class StaticDataProvider(BaseDataProvider):
     def from_prepared(data_frame: pd.DataFrame, date_format: ProviderDateFormat, **kwargs):
         return StaticDataProvider(date_format=date_format, data_frame=data_frame, skip_prepare_data=True, **kwargs)
 
-    def split_provider_train_test(self, train_split_percentage: float = 0.8) -> Tuple[BaseDataProvider, BaseDataProvider]:
+    def split_data_train_test(self, train_split_percentage: float = 0.8) -> Tuple[BaseDataProvider, BaseDataProvider]:
         train_len = int(train_split_percentage * len(self.data_frame))
 
         train_df = self.data_frame[:train_len].copy()

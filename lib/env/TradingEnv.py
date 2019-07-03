@@ -18,7 +18,7 @@ class TradingEnv(gym.Env):
     def __init__(self, data_provider: BaseDataProvider, initial_balance=10000, commission=0.0025, **kwargs):
         super(TradingEnv, self).__init__()
 
-        self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
+        self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.data_provider = data_provider
         self.initial_balance = initial_balance
