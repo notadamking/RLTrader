@@ -68,11 +68,11 @@ class ExchangeDataProvider(BaseDataProvider):
 
             train_provider = ExchangeDataProvider(data_frame=train_df, **params, _has_loaded_historical=True)
             test_provider = ExchangeDataProvider(data_frame=test_df, **params, _has_loaded_historical=True)
-
-            return train_provider, test_provider
         else:
             train_provider = ExchangeDataProvider(data_frame=self.data_frame, **params)
             test_provider = ExchangeDataProvider(**params)
+
+        return train_provider, test_provider
 
     def _load_historical_ohlcv(self) -> pd.DataFrame:
         self.data_frame = pd.DataFrame(None, columns=self.in_columns)

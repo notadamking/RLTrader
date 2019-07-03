@@ -2,15 +2,18 @@
 
 set -e
 
+ARGS=''
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 CWD=$(realpath "${SCRIPT_DIR}")
 
 if [[ -z $1 ]]; then
-    echo "Should have 1 argument: cpu or gpu"
+    echo "Should have as least 1 argument: cpu or gpu"
+    echo "Passing a second argument as yes, will start an instance of postgres locally. (data is saved into data/postgres)"
+    echo "Examples: ./run-with-docker gpu yes &&  - will start with local postgres container and run opt-trade-test with new db"
     exit
 fi
 
-if [[ -n $2 ]]; then
+if [[ -n $2 ]] && [[ $2 == 'yes' ]]; then
     docker build \
         --tag 'trader-rl-postgres' \
         --build-arg ID=$(id -u) \
@@ -24,6 +27,8 @@ if [[ -n $2 ]]; then
         --user "$(id -u):$(id -g)" \
         --volume "$CWD/data/postgres":"/var/lib/postgresql/data/trader-data" \
       trader-rl-postgres
+
+      ARGS='--params_db_path "postgres://rl_trader:rl_trader@localhost"'
 fi
 
 if [[ $1 == 'gpu' ]]; then
@@ -59,4 +64,4 @@ docker run \
     --tty \
     --volume "${CWD}":/code \
     "$N" \
-        python /code/cli.py opt-train-test
+        python /code/cli.py $ARGS opt-train-test
