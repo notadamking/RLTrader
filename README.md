@@ -15,6 +15,8 @@ If you'd like to learn more about how we created this agent, check out the Mediu
 Later, we optimized this repo for massive profits using feature engineering and Bayesian optimization, check it out:
 https://towardsdatascience.com/using-reinforcement-learning-to-trade-bitcoin-for-massive-profit-b69d0e8f583b
 
+![Live trading visualization](https://github.com/notadamking/RLTrader/blob/master/visualization.gif)
+
 # Getting Started
 
 The first thing you will need to do to get started is install the requirements in `requirements.txt`.
