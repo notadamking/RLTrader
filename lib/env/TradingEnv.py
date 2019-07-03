@@ -1,3 +1,5 @@
+from collections import deque
+
 import gym
 import pandas as pd
 import numpy as np
@@ -24,7 +26,11 @@ class TradingEnv(gym.Env):
         self.initial_balance = initial_balance
         self.commission = commission
 
-        self.reward_fn = kwargs.get('reward_fn', self._reward_incremental_profit)
+        self.decay_rate = kwargs.get('decay_rate', 1e-2)
+        self.rewards = deque(np.zeros(1, dtype=float))
+        self.sum = 0.0
+        self.denominator = np.exp(-1 * self.decay_rate)
+        self.reward_fn = kwargs.get('reward_fn', self.get_reward)
         self.benchmarks = kwargs.get('benchmarks', [])
         self.enable_stationarization = kwargs.get('enable_stationarization', True)
 
@@ -35,6 +41,18 @@ class TradingEnv(gym.Env):
         self.obs_shape = (1, n_features)
         self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float16)
         self.observations = pd.DataFrame(None, columns=self.data_provider.columns)
+
+    def reset_reward(self):
+        self.rewards = deque(np.zeros(1, dtype=float))
+        self.sum = 0.0
+
+    def get_reward(self, reward):
+        stale_reward = self.rewards.popleft()
+        self.sum = self.sum - np.exp(-1 * self.decay_rate) * stale_reward
+        self.sum = self.sum * np.exp(-1 * self.decay_rate)
+        self.sum = self.sum + reward
+        self.rewards.append(reward)
+        return self.sum / self.denominator
 
     def _next_observation(self):
         self.current_ohlcv = self.data_provider.next_ohlcv()
@@ -85,6 +103,7 @@ class TradingEnv(gym.Env):
             self.last_sold = self.current_step
             self.btc_held -= btc_sold
             self.balance += revenue_from_sold
+            self.reset_reward()
 
         if btc_sold > 0 or btc_bought > 0:
             self.trades.append({'step': self.current_step,
@@ -101,25 +120,8 @@ class TradingEnv(gym.Env):
             'revenue_from_sold': revenue_from_sold,
         }, ignore_index=True)
 
-    def _reward_incremental_profit(self, observations, net_worths, account_history, last_bought, last_sold, current_price):
-        prev_balance = account_history['balance'].values[-2]
-        curr_balance = account_history['balance'].values[-1]
-        reward = 0
-
-        if curr_balance > prev_balance:
-            reward = net_worths[-1] - net_worths[last_bought]
-        elif curr_balance < prev_balance:
-            reward = observations['Close'].values[last_sold] - current_price
-
-        return reward
-
     def _reward(self):
-        reward = self.reward_fn(observations=self.observations,
-                                net_worths=self.net_worths,
-                                account_history=self.account_history,
-                                last_bought=self.last_bought,
-                                last_sold=self.last_sold,
-                                current_price=self._current_price())
+        reward = self.get_reward(self.btc_held * self._current_price())
 
         return reward if np.isfinite(reward) else 0
 
@@ -138,6 +140,7 @@ class TradingEnv(gym.Env):
         self.current_step = 0
         self.last_bought = 0
         self.last_sold = 0
+        self.reset_reward()
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,
