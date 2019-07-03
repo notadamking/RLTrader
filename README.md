@@ -88,6 +88,11 @@ If you want to run existing tests, then just use:
 ./run-tests-with-docker
 ```
 
+If you want to test and develop using docker:
+```bash
+./dev-with-docker
+```
+
 # Fire up a local docker dev environment
 
 # Optimizing, Training, and Testing
