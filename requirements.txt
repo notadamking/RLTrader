@@ -10,3 +10,4 @@ statsmodels==0.10.0rc2
 empyrical
 tensorflow-gpu
 ccxt
+psycopg2
