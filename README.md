@@ -1,5 +1,6 @@
 # RLTrader (Formerly Bitcoin-Trader-RL)
 
+[![Build Status](https://travis-ci.org/notadamking/Bitcoin-Trader-RL.svg?branch=master)](https://travis-ci.org/notadamking/Bitcoin-Trader-RL)
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
 Discord server: https://discord.gg/ZZ7BGWh
