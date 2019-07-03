@@ -3,9 +3,10 @@ FROM postgres:11-alpine
 ARG ID=1000
 ARG GI=1000
 
+RUN adduser -D -u $ID rl_trader || true
+
 ENV POSTGRES_USER=rl_trader
 ENV POSTGRES_PASSWORD=rl_trader
-ENV POSTGRES_DB='rl-trader'
+ENV POSTGRES_DB='rl_trader'
 ENV PGDATA=/var/lib/postgresql/data/trader-data
 
-RUN adduser -D -u $ID btct

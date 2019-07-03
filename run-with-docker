@@ -13,7 +13,7 @@ if [[ -z $1 ]]; then
     exit
 fi
 
-if [[ -n $2 ]] && [[ $2 == 'yes' ]]; then
+if [[ $2 == 'yes' ]]; then
     docker build \
         --tag 'trader-rl-postgres' \
         --build-arg ID=$(id -u) \
