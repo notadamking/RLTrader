@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 [![GPL Licence](https://badges.frapsoft.com/os/gpl/gpl.svg?v=103)](https://opensource.org/licenses/GPL-3.0/)
+[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
@@ -19,27 +20,95 @@ https://towardsdatascience.com/using-reinforcement-learning-to-trade-bitcoin-for
 
 # Getting Started
 
-The first thing you will need to do to get started is install the requirements in `requirements.txt`.
+The first thing you will need to do to get started is install the requirements. If your system has an nVIDIA GPU that you should start by using:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The requirements include the `tensorflow-gpu` library, though if you do not have access to a GPU, you should replace this requirement with `tensorflow`.
+If you have another type of GPU or you simply want to use your CPU, use:
+
+```bash
+pip install -r requirements.no-gpu.txt
+```
+
+Update your current static files, that are used by default:
+```bash
+ python update_data.py
+ ```
+
+Afterwards you can simply see the currently available options:
+
+```bash
+python ./cli.py --help
+```
+
+or simply run the project with default options:
+
+```bash
+python ./cli.py opt-train-test
+```
+
+### Testing with vagrant
+
+Start the vagrant box using:
+```bash
+vagrant up
+```
+
+Code will be located at /vagrant. Play and/or test with whatever package you wish.
+Note: With vagrant you cannot take full advantage of your GPU, so is mainly for testing purposes
+
+
+### Testing with docker
+
+If you want to run everything within a docker container, then just use:
+```bash
+./run-with-docker (cpu|gpu) (yes|no) opt-train-test
+```
+- cpu - start the container using CPU requirements
+- gpu - start the container using GPU requirements
+- yes | no - start or not a local postgres container
+Note: in case using yes as second argument, use 
+
+```bash
+python ./ cli.py--params-db-path "postgres://rl_trader:rl_trader@localhost" opt-train-test
+```
+
+The database and it's data are pesisted under `data/postgres` locally.
+
+If you want to spin a docker test environment:
+```bash
+./run-with-docker (cpu|gpu) (yes|no)
+```
+
+If you want to run existing tests, then just use:
+```bash
+./run-tests-with-docker
+```
+
+# Fire up a local docker dev environment
 
 # Optimizing, Training, and Testing
 
 While you could just let the agent train and run with the default PPO2 hyper-parameters, your agent would likely not be very profitable. The `stable-baselines` library provides a great set of default parameters that work for most problem domains, but we need to better.
 
-To do this, you will need to run `optimize.py`.
+To do this, you will need to run `cli.py`.
 
 ```bash
-python ./optimize.py
+python ./cli.py opt-train-test
 ```
 
 This can take a while (hours to days depending on your hardware setup), but over time it will print to the console as trials are completed. Once a trial is completed, it will be stored in `./data/params.db`, an SQLite database, from which we can pull hyper-parameters to train our agent.
 
 From there, you can train an agent with the best set of hyper-parameters, and later test it on completely new data to verify the generalization of the algorithm.
+
+# Common troubleshooting
+
+##### The specified module could not be found.
+Normally this is caused by missing mpi module. You should install it according to your platorm.
+- Windows: https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi
+- Linux/MacOS: https://www.mpich.org/downloads/
 
 # Project Roadmap
 

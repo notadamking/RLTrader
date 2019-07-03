@@ -6,3 +6,4 @@ tensorboard
 agents
 data/tensorboard
 data/agents
+data/postgres

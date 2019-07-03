@@ -14,6 +14,8 @@ class RLTraderCLI:
         self.parser.add_argument('--mini-batches', type=int, default=1, help='Mini batches', dest='nminibatches')
         self.parser.add_argument('--train-split-percentage', type=int, default=0.8, help='Train set percentage')
         self.parser.add_argument('--verbose-model', type=int, default=1, help='Verbose model')
+        self.parser.add_argument('--params-db-path', type=str, default='sqlite:///data/params.db',
+                                     help='Params path')
         self.parser.add_argument(
             '--tensor-board-path',
             type=str,
@@ -35,8 +37,6 @@ class RLTraderCLI:
         optimize_parser.add_argument('--trials', type=int, default=1, help='Number of trials')
         optimize_parser.add_argument('--parallel-jobs', type=int, default=1, help='How many jobs in parallel')
 
-        optimize_parser.add_argument('--params-db-path', type=str, default='sqlite:///data/params.db',
-                                     help='Params path')
         optimize_parser.add_argument('--verbose-model', type=int, default=1, help='Verbose model', dest='model_verbose')
 
         train_parser = subparsers.add_parser('train', description='Train model')
