@@ -53,8 +53,6 @@ If you would like to contribute, here is the roadmap for the future of this proj
   * Improve speed of pandas methods by taking advantage of GPU
   * Pre-process any data that is not currently being pre-processed
 * Find source of memory leak (in `RLTrader.optimize`) and squash it
-  
-## Stage 1:
 * Allow features to be added/removed at runtime
   * Create simple API for turning off default features (e.g. prediction, indicators, etc.)
   * Create simple API for adding new features to observation space
@@ -70,6 +68,16 @@ If you would like to contribute, here is the roadmap for the future of this proj
   * Implement pre-trained LSTM using generic interface
 * Allow trained models to be saved to a local database (SQLite/Postgres)
   * Save performance metrics with the model
+
+## Stage 1:
+* Implement a Generative Aderversarial Network (GAN) for accurately simulating asset price fluctuations
+  * Implement Monte Carlo rollouts to find the most probabilistic outcomes
+* Implement a custom RL agent using ODEs or other state-of-the-art algorithm (relational recurrent networks)
+  * Incorporate GAN predictions into model state
+* Implement `xgboost` and Stacked Auto-encoders to improve the feature selection of the model
+* Experiment with Auto-decoders to remove noise from the observation space
+* Implement self-play in a multi-process environment to improve model exploration
+  * Experiment with dueling actors vs tournament of dueling agents
 
   
 
