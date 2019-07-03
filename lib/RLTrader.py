@@ -12,6 +12,7 @@ from stable_baselines import PPO2
 from lib.env.TradingEnv import TradingEnv
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import StaticDataProvider, ExchangeDataProvider
+from lib.util.logger import init_logger
 
 
 class RLTrader:
@@ -19,13 +20,13 @@ class RLTrader:
     study_name = None
 
     def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, exchange_args: Dict = {}, **kwargs):
-        self.logger = kwargs.get('logger', None)
+        self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.Model = modelClass
         self.Policy = policyClass
         self.exchange_args = exchange_args
         self.tensorboard_path = kwargs.get('tensorboard_path', None)
-        self.input_data_path = kwargs.get('input_data_path', None)
+        self.input_data_path = kwargs.get('input_data_path', 'data/input/coinbase-1h-btc-usd.csv')
         self.params_db_path = kwargs.get('params_db_path', 'sqlite:///data/params.db')
 
         self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_24)
@@ -33,17 +34,18 @@ class RLTrader:
         self.model_verbose = kwargs.get('model_verbose', 1)
         self.nminibatches = kwargs.get('nminibatches', 1)
         self.train_split_percentage = kwargs.get('train_split_percentage', 0.8)
+        self.data_provider = kwargs.get('data_provider', 'static')
 
-        self.initialize_data(kwargs.get('data_provider', 'static'), kwargs.get('input_data_path', 'static'))
+        self.initialize_data()
         self.initialize_optuna()
 
         self.logger.debug(f'Initialize RLTrader: {self.study_name}')
 
-    def initialize_data(self, provider, input_data_path):
-        if 'static' == provider:
-            if self.input_data_path is None:
+    def initialize_data(self):
+        if self.data_provider == 'static':
+            if not os.path.isfile(self.input_data_path):
                 class_dir = os.path.dirname(__file__)
-                self.input_data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(input_data_path)))
+                self.input_data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(self.input_data_path)))
 
             data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
                             'Low': 'Low', 'Close': 'Close', 'Volume': 'VolumeFrom'}
@@ -51,7 +53,7 @@ class RLTrader:
             self.data_provider = StaticDataProvider(date_format=self.date_format,
                                                     csv_data_path=self.input_data_path,
                                                     data_columns=data_columns)
-        else:
+        elif self.data_provider == 'exchange':
             self.data_provider = ExchangeDataProvider(**self.exchange_args)
 
         self.logger.debug(f'Initialized Features: {self.data_provider.columns}')

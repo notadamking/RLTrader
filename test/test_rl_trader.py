@@ -24,4 +24,3 @@ class TestRLTrader():
             assert(sut.train_split_percentage == args.train_split_percentage)
             assert(sut.input_data_path == args.input_data_path)
             assert(sut.model_verbose == args.model_verbose)
-            assert(sut.input_data_path == args.input_data_path)

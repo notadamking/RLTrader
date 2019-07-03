@@ -29,7 +29,7 @@ class BaseDataProvider(object, metaclass=ABCMeta):
             self.data_columns = dict(zip(self.columns, self.in_columns))
 
     @abstractmethod
-    def split_data_train_test(self, train_split_percentage: float = 0.8) -> Tuple[BaseDataProvider, BaseDataProvider]:
+    def split_data_train_test(self, train_split_percentage: float = 0.8) -> Tuple:
         raise NotImplementedError
 
     @abstractmethod
@@ -100,10 +100,6 @@ class BaseDataProvider(object, metaclass=ABCMeta):
         else:
             raise NotImplementedError
 
-        print("before", date_col)
-
         formatted[date_col] = formatted[date_col].values.astype(np.int64) // 10 ** 9
-
-        print("after", date_col)
 
         return formatted
