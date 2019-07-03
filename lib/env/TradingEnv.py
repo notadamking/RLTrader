@@ -121,7 +121,10 @@ class TradingEnv(gym.Env):
         }, ignore_index=True)
 
     def _reward(self):
-        reward = self.get_reward(self.btc_held * self._current_price())
+        if self.account_history['btc_sold'].values[-1] > 0:
+            reward = self.get_reward(self.account_history['revenue_from_sold'].values[-1])
+        else:
+            reward = self.get_reward(self.btc_held * self._current_price())
 
         return reward if np.isfinite(reward) else 0
 
