@@ -12,7 +12,7 @@ Data sets: https://www.cryptodatadownload.com/data/northamerican/
 
 If you'd like to learn more about how we created this agent, check out the Medium article: https://towardsdatascience.com/creating-bitcoin-trading-bots-that-dont-lose-money-2e7165fb0b29
 
-Later, we optimized this repo for massive profits using feature engineering and Bayesian optimization, check it out:
+Later, we optimized this repo using feature engineering, statistical modeling, and Bayesian optimization, check it out:
 https://towardsdatascience.com/using-reinforcement-learning-to-trade-bitcoin-for-massive-profit-b69d0e8f583b
 
 ![Live trading visualization](https://github.com/notadamking/RLTrader/blob/master/visualization.gif)
@@ -31,7 +31,7 @@ The requirements include the `tensorflow-gpu` library, though if you do not have
 
 While you could just let the agent train and run with the default PPO2 hyper-parameters, your agent would likely not be very profitable. The `stable-baselines` library provides a great set of default parameters that work for most problem domains, but we need to better.
 
-To do this, you will need to run `optimize.py`. Within the file, you can define the `reward_strategy` for the environment to use, this is currently defaulted to `sortino`.
+To do this, you will need to run `optimize.py`.
 
 ```bash
 python ./optimize.py
