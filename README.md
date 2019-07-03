@@ -1,9 +1,9 @@
 # RLTrader (Formerly Bitcoin-Trader-RL)
 
 [![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
-[![GPL License](https://img.shields.io/github/license/notadamking/RLTrader.svg)](https://opensource.org/licenses/GPL-3.0/)
-[![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-orange.svg)](http://makeapullrequest.com)
 [![Github Stars](https://img.shields.io/github/stars/notadamking/RLTrader.svg)]()
+[![Contributions Welcomed](https://img.shields.io/badge/contributions-welcomed-brightgreen.svg)](http://makeapullrequest.com)
+[![GPL License](https://img.shields.io/github/license/notadamking/RLTrader.svg)](https://opensource.org/licenses/GPL-3.0/)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
