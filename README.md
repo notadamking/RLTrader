@@ -1,6 +1,8 @@
 # RLTrader (Formerly Bitcoin-Trader-RL)
 
 [![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![GPL Licence](https://badges.frapsoft.com/os/gpl/gpl.svg?v=103)](https://opensource.org/licenses/GPL-3.0/)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
@@ -87,3 +89,5 @@ If you would like to contribute, here is the roadmap for the future of this proj
 # Contributing
 
 Contributions are encouraged and I will always do my best to get them implemented into the library ASAP. This project is meant to grow as the community around it grows. Let me know if there is anything that you would like to see in the future or if there is anything you feel is missing.
+
+**Working on your first Pull Request?** You can learn how from this *free* series [How to Contribute to an Open Source Project on GitHub](https://egghead.io/series/how-to-contribute-to-an-open-source-project-on-github)
