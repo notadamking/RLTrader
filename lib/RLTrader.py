@@ -120,14 +120,11 @@ class RLTrader:
 
         del test_provider
 
-        n_envs = min(self.n_envs, 4)
-        n_minibatches = self.n_minibatches if n_envs % self.n_minibatches == 0 else n_envs
-
-        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(n_envs)])
-        validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(n_envs)])
+        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(1)])
+        validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(1)])
 
         model_params = self.optimize_agent_params(trial)
-        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=n_minibatches,
+        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=1,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         last_reward = -np.finfo(np.float16).max
