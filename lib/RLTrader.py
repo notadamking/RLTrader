@@ -201,8 +201,9 @@ class RLTrader:
 
             model.learn(total_timesteps=steps_per_epoch)
 
-            model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
-            model.save(model_path)
+            if model_epoch % save_every == 0:
+                model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
+                model.save(model_path)
 
             if test_trained_model:
                 self.test(model_epoch, should_render=render_trained_model)
