@@ -20,7 +20,7 @@ class TestRLTrader():
             assert(sut.tensorboard_path == args.tensorboard_path)
             assert(sut.params_db_path == args.params_db_path)
             assert(sut.model_verbose == args.model_verbose)
-            assert(sut.nminibatches == args.nminibatches)
+            assert(sut.n_minibatches == args.n_minibatches)
             assert(sut.train_split_percentage == args.train_split_percentage)
             assert(sut.input_data_path == args.input_data_path)
             assert(sut.model_verbose == args.model_verbose)
