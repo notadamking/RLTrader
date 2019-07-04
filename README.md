@@ -41,7 +41,7 @@ python ./optimize.py
 
 This can take a while (hours to days depending on your hardware setup), but over time it will print to the console as trials are completed. Once a trial is completed, it will be stored in `./data/params.db`, an SQLite database, from which we can pull hyper-parameters to train our agent.
 
-From there, you can train an agent with the best set of hyper-parameters, and later test it on completely new data to verify the generalization of the algorithm.
+From there, agents will be trained using the best set of hyper-parameters, and later tested on completely new data to verify the generalization of the algorithm.
 
 # Project Roadmap
 
@@ -55,13 +55,15 @@ If you would like to contribute, here is the roadmap for the future of this proj
   - Allow model/agent to be passed in at run time **[@notadamking]**
   - Allow live data to be saved in a format that can be later trained on **[@notadamking]**
   - Enable paper-trading by default **[@notadamking]**
-- Enable complete multi-processing throughout the environment
-  - Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
-  - Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
-- Find source of CPU bottlenecks to improve GPU utilization
-  - Improve speed of pandas methods by taking advantage of GPU
-  - Pre-process any data that is not currently being pre-processed
-- Find source of memory leak (in `RLTrader.optimize`) and squash it
+- ~Enable complete multi-processing throughout the environment~  **[@notadamking]** arunavo4
+  - ~Optionally replace SQLite db with Postgres to enable multi-processed Optuna training~
+    - This is enabled through Docker, though support for Postgres still needs to be improved
+  - ~Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code~ **[@archenroot, @arunavo4, @notadamking]**
+- Find sources of CPU bottlenecks to improve GPU utilization
+  - Replace pandas or improve speed of pandas methods by taking advantage of GPU
+- Find source of possible memory leak (in `RLTrader.optimize`) and squash it
+
+## Stage 1:
 - Allow features to be added/removed at runtime
   - Create simple API for turning off default features (e.g. prediction, indicators, etc.)
   - Create simple API for adding new features to observation space
@@ -78,7 +80,7 @@ If you would like to contribute, here is the roadmap for the future of this proj
 - Allow trained models to be saved to a local database (SQLite/Postgres)
   - Save performance metrics with the model
 
-## Stage 1:
+## Stage 2:
 
 - Implement a Generative Aderversarial Network (GAN) for accurately simulating asset price fluctuations
   - Implement Monte Carlo rollouts to find the most probabilistic outcomes
@@ -87,7 +89,6 @@ If you would like to contribute, here is the roadmap for the future of this proj
 - Implement `xgboost` and Stacked Auto-encoders to improve the feature selection of the model
 - Experiment with Auto-decoders to remove noise from the observation space
 - Implement self-play in a multi-process environment to improve model exploration
-
   - Experiment with dueling actors vs tournament of dueling agents
 
 # Contributing
