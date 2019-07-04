@@ -55,9 +55,10 @@ If you would like to contribute, here is the roadmap for the future of this proj
   - Allow model/agent to be passed in at run time **[@notadamking]**
   - Allow live data to be saved in a format that can be later trained on **[@notadamking]**
   - Enable paper-trading by default **[@notadamking]**
-- Enable complete multi-processing throughout the environment
-  - Optionally replace SQLite db with Postgres to enable multi-processed Optuna training
-  - Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code
+- ~Enable complete multi-processing throughout the environment~  **[@notadamking]** arunavo4
+  - ~Optionally replace SQLite db with Postgres to enable multi-processed Optuna training~
+    - This is enabled through Docker, though support for Postgres still needs to be improved
+  - ~Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code~ **[@archenroot, @arunavo4, @notadamking]**
 - Find source of CPU bottlenecks to improve GPU utilization
   - Improve speed of pandas methods by taking advantage of GPU
   - Pre-process any data that is not currently being pre-processed
