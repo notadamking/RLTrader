@@ -1,35 +1,51 @@
+import os
 import optuna
-import pandas as pd
 import numpy as np
 
 from os import path
+from typing import Dict
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.policies import BasePolicy, MlpPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
 from lib.data.providers.dates import ProviderDateFormat
-from lib.data.providers import StaticDataProvider
-from lib.data.features.indicators import add_indicators
+from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
 
 
+def make_env(data_provider: BaseDataProvider, rank: int = 0, seed: int = 0):
+    def _init():
+        env = TradingEnv(data_provider)
+        env.seed(seed + rank)
+        return env
+    set_global_seeds(seed)
+    return _init
+
+
 class RLTrader:
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, **kwargs):
-        self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
+    data_provider = None
+    study_name = None
+
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, exchange_args: Dict = {}, **kwargs):
+        self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.Model = modelClass
         self.Policy = policyClass
+        self.exchange_args = exchange_args
         self.tensorboard_path = kwargs.get('tensorboard_path', None)
-        self.input_data_path = kwargs.get('input_data_path', None)
+        self.input_data_path = kwargs.get('input_data_path', 'data/input/coinbase-1h-btc-usd.csv')
         self.params_db_path = kwargs.get('params_db_path', 'sqlite:///data/params.db')
 
-        self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_12)
+        self.date_format = kwargs.get('date_format', ProviderDateFormat.DATETIME_HOUR_24)
 
         self.model_verbose = kwargs.get('model_verbose', 1)
-        self.nminibatches = kwargs.get('nminibatches', 1)
+        self.n_envs = kwargs.get('n_envs', os.cpu_count())
+        self.n_minibatches = kwargs.get('n_minibatches', self.n_envs)
         self.train_split_percentage = kwargs.get('train_split_percentage', 0.8)
+        self.data_provider = kwargs.get('data_provider', 'static')
 
         self.initialize_data()
         self.initialize_optuna()
@@ -37,15 +53,19 @@ class RLTrader:
         self.logger.debug(f'Initialize RLTrader: {self.study_name}')
 
     def initialize_data(self):
-        if self.input_data_path is None:
-            self.input_data_path = path.join('data', 'input', 'coinbase_hourly.csv')
+        if self.data_provider == 'static':
+            if not os.path.isfile(self.input_data_path):
+                class_dir = os.path.dirname(__file__)
+                self.input_data_path = os.path.realpath(os.path.join(class_dir, "../{}".format(self.input_data_path)))
 
-        data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
-                        'Low': 'Low', 'Close': 'Close', 'Volume': 'Volume BTC'}
+            data_columns = {'Date': 'Date', 'Open': 'Open', 'High': 'High',
+                            'Low': 'Low', 'Close': 'Close', 'Volume': 'VolumeFrom'}
 
-        self.data_provider = StaticDataProvider(date_format=self.date_format,
-                                                csv_data_path=self.input_data_path,
-                                                data_columns=data_columns)
+            self.data_provider = StaticDataProvider(date_format=self.date_format,
+                                                    csv_data_path=self.input_data_path,
+                                                    data_columns=data_columns)
+        elif self.data_provider == 'exchange':
+            self.data_provider = ExchangeDataProvider(**self.exchange_args)
 
         self.logger.debug(f'Initialized Features: {self.data_provider.columns}')
 
@@ -95,16 +115,16 @@ class RLTrader:
         }
 
     def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
-        train_provider, validation_provider = train_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
+        train_provider, validation_provider = train_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
 
-        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
-        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider)])
+        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(1)])
+        validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(1)])
 
         model_params = self.optimize_agent_params(trial)
-        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
+        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=1,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         last_reward = -np.finfo(np.float16).max
@@ -126,7 +146,7 @@ class RLTrader:
                 obs, reward, done, _ = validation_env.step(action)
                 reward_sum += reward
 
-                if done:
+                if all(done):
                     rewards.append(reward_sum)
                     reward_sum = 0.0
                     n_episodes += 1
@@ -140,7 +160,7 @@ class RLTrader:
 
         return -1 * last_reward
 
-    def optimize(self, n_trials: int = 20, n_parallel_jobs: int = 1, *optimize_params):
+    def optimize(self, n_trials: int = 100, n_parallel_jobs: int = 1, *optimize_params):
         try:
             self.optuna_study.optimize(
                 self.optimize_params, n_trials=n_trials, n_jobs=n_parallel_jobs, *optimize_params)
@@ -157,16 +177,16 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+    def train(self, n_epochs: int = 100, save_every: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
 
-        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
+        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(self.n_envs)])
 
         model_params = self.get_model_params()
 
-        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.nminibatches,
+        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.n_minibatches,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         self.logger.info(f'Training for {n_epochs} epochs')
@@ -178,8 +198,9 @@ class RLTrader:
 
             model.learn(total_timesteps=steps_per_epoch)
 
-            model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
-            model.save(model_path)
+            if model_epoch % save_every == 0:
+                model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
+                model.save(model_path)
 
             if test_trained_model:
                 self.test(model_epoch, should_render=render_trained_model)
@@ -187,11 +208,11 @@ class RLTrader:
         self.logger.info(f'Trained {n_epochs} models')
 
     def test(self, model_epoch: int = 0, should_render: bool = True):
-        train_provider, test_provider = self.data_provider.split_provider_train_test(self.train_split_percentage)
+        train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del train_provider
 
-        test_env = DummyVecEnv([lambda: TradingEnv(test_provider)])
+        test_env = SubprocVecEnv([make_env(test_provider, i) for i in range(self.n_envs)])
 
         model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
         model = self.Model.load(model_path, env=test_env)
@@ -199,15 +220,15 @@ class RLTrader:
         self.logger.info(f'Testing model ({self.study_name}__{model_epoch})')
 
         state = None
-        obs, done, rewards = test_env.reset(), False, []
-        while not done:
+        obs, done, rewards = test_env.reset(), [False], []
+        while not all(done):
             action, state = model.predict(obs, state=state)
             obs, reward, done, _ = test_env.step(action)
 
             rewards.append(reward)
 
-            if should_render:
+            if should_render and self.n_envs == 1:
                 test_env.render(mode='human')
 
         self.logger.info(
-            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.mean(rewards))}')
+            f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
