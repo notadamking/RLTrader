@@ -58,3 +58,34 @@ class StaticDataProvider(BaseDataProvider):
         self._current_index += 1
 
         return frame
+
+    # Precisions as defined in the unified CCXT API
+    def get_market_fiat_precision(self) -> int:
+        return 0
+    
+    def get_market_coin_precision(self) -> int:
+        return 0
+    
+    def get_market_min_price_limit(self) -> int:
+        return 0
+    
+    def get_market_max_price_limit(self) -> int:
+        return 0
+        
+    def get_market_min_amount_limit(self) -> float:
+        return 0
+
+    def get_market_max_amount_limit(self) -> float:
+        return 0
+      
+    def get_market_min_cost_limit(self) -> float:
+        return 0
+    
+    def get_market_max_cost_limit(self) -> float:
+        return 0
+
+    def get_market_taker_fee(self) -> float:
+        return 0
+        
+    def get_market_maker_fee(self) -> float:
+        return 0

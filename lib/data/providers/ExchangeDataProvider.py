@@ -41,12 +41,14 @@ class ExchangeDataProvider(BaseDataProvider):
             raise AttributeError(
                 f'Exchange {self.exchange_name} does not support fetchOHLCV')
 
-        self.exchange.load_markets()
         self.exchange.enableRateLimit = True
 
         if self.symbol_pair not in self.exchange.symbols:
             raise ModuleNotFoundError(
                 f'The requested symbol {self.symbol_pair} is not available from {self.exchange_name}')
+            
+        markets = self.exchange.load_markets()
+        self.market = markets[symbol_pair]
 
     def historical_ohlcv(self):
         if self._has_loaded_historical is False:
@@ -101,3 +103,34 @@ class ExchangeDataProvider(BaseDataProvider):
             return frame
 
         return None
+
+    # Precisions as defined in the unified CCXT API
+    def get_market_fiat_precision(self) -> int:
+        return self.market['precision']['price']
+    
+    def get_market_coin_precision(self) -> int:
+        return self.market['precision']['amount']
+    
+    def get_market_min_price_limit(self) -> int:
+        return self.market['limits']['price']['min']
+    
+    def get_market_max_price_limit(self) -> int:
+        return self.market['limits']['price']['max']
+        
+    def get_market_min_amount_limit(self) -> float:
+        return self.market['limits']['amount']['min']
+
+    def get_market_max_amount_limit(self) -> float:
+        return self.market['limits']['amount']['max']
+      
+    def get_market_min_cost_limit(self) -> float:
+        return self.market['limits']['cost']['min']
+    
+    def get_market_max_cost_limit(self) -> float:
+        return self.market['limits']['cost']['max']
+
+    def get_market_taker_fee(self) -> float:
+        return self.market['taker']
+        
+    def get_market_maker_fee(self) -> float:
+        return self.market['maker']

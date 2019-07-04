@@ -14,17 +14,25 @@ class TradingEnv(gym.Env):
     metadata = {'render.modes': ['human', 'system', 'none']}
     viewer = None
 
-    def __init__(self, data_provider: BaseDataProvider, initial_balance=10000, commission=0.0025, **kwargs):
+    def __init__(self, data_provider: BaseDataProvider, initial_balance=10000, **kwargs):
         super(TradingEnv, self).__init__()
 
         self.logger = init_logger(__name__, show_debug=kwargs.get('show_debug', True))
 
-        self.usd_precision = 3
-        self.coin_precision = 8
-
+        # Defaults from Coinbase Pro BTC/USD market
+        self.fiat_precision = kwargs.get('fiat_precision', 2)
+        self.coin_precision = kwargs.get('coin_precision', 8)
+        self.min_price_limit = kwargs.get('min_price_limit', 0.01)
+        self.max_price_limit = kwargs.get('max_price_limit', float("inf"))
+        self.min_amount_limit = kwargs.get('min_amount_limit', 0.001)
+        self.max_amount_limit = kwargs.get('max_amount_limit', 280.0)
+        self.min_cost_limit = kwargs.get('min_cost_limit', 10.0)
+        self.max_cost_limit = kwargs.get('max_cost_limit', 1000000.0)
+        self.commission = max(kwargs.get('taker_fee', 0.0025), kwargs.get('maker_fee', 0.0015))
+        
+    
         self.data_provider = data_provider
-        self.initial_balance = round(initial_balance, self.usd_precision)
-        self.commission = commission
+        self.initial_balance = round(initial_balance, self.fiat_precision)
 
         self.reward_fn = kwargs.get('reward_fn', self._reward_incremental_profit)
         self.benchmarks = kwargs.get('benchmarks', [])
@@ -64,43 +72,48 @@ class TradingEnv(gym.Env):
         return float(self.current_ohlcv['Close'])
 
     def _take_action(self, action):
-        current_price = self._current_price()
-
-        btc_bought = 0
-        btc_sold = 0
-        cost_of_btc = 0
+        
+        coin_bought = 0
+        coin_sold = 0
+        cost_of_coin = 0
         revenue_from_sold = 0
-
-        if action == 0 and self.balance >= 0.001:
-            price = round(current_price * (1 + self.commission), self.usd_precision)
-            btc_bought = round(self.balance / price, self.coin_precision)
-            cost_of_btc = round(self.balance, self.coin_precision)
-
-            self.last_bought = self.current_step
-            self.btc_held += btc_bought
-            self.balance -= cost_of_btc
-            
-        elif action == 1 and self.btc_held >= 1e-8:
-            price = round(current_price * (1 - self.commission), self.usd_precision)
-            btc_sold = round(self.btc_held, self.coin_precision)
-            revenue_from_sold = round(btc_sold * price, self.usd_precision)
-
-            self.last_sold = self.current_step
-            self.btc_held -= btc_sold
-            self.balance += revenue_from_sold
-
-        if btc_sold > 0 or btc_bought > 0:
+        
+        current_price = self._current_price()
+       
+        if current_price >= self.min_price_limit and current_price <= self.max_price_limit: 
+            # Buy coin
+            if action == 0 and self.balance >= self.min_cost_limit and self.balance <= self.max_cost_limit:
+                
+                price = round(current_price * (1 + self.commission), self.fiat_precision)
+                coin_bought = round(self.balance / price, self.coin_precision)
+                cost_of_coin = round(self.balance, self.fiat_precision)
+    
+                self.last_bought = self.current_step
+                self.btc_held += coin_bought
+                self.balance -= cost_of_coin
+                
+            # Sell coin
+            elif action == 1 and self.btc_held >= self.min_amount_limit and self.btc_held <= self.max_amount_limit:
+                price = round(current_price * (1 - self.commission), self.fiat_precision)
+                coin_sold = round(self.btc_held, self.coin_precision)
+                revenue_from_sold = round(coin_sold * price, self.fiat_precision)
+    
+                self.last_sold = self.current_step
+                self.btc_held -= coin_sold
+                self.balance += revenue_from_sold
+                
+        if coin_sold > 0 or coin_bought > 0:
             self.trades.append({'step': self.current_step,
-                                'amount': btc_sold if btc_sold > 0 else btc_bought, 'total': revenue_from_sold if btc_sold > 0 else cost_of_btc,
-                                'type': 'sell' if btc_sold > 0 else 'buy'})
+                                'amount': coin_sold if coin_sold > 0 else coin_bought, 'total': revenue_from_sold if coin_sold > 0 else cost_of_coin,
+                                'type': 'sell' if coin_sold > 0 else 'buy'})
 
-        self.net_worths.append(round(self.balance + self.btc_held * current_price, self.usd_precision))
+        self.net_worths.append(round(self.balance + self.btc_held * current_price, self.fiat_precision))
 
         self.account_history = self.account_history.append({
             'balance': self.balance,
-            'btc_bought': btc_bought,
-            'cost_of_btc': cost_of_btc,
-            'btc_sold': btc_sold,
+            'coin_bought': coin_bought,
+            'cost_of_coin': cost_of_coin,
+            'coin_sold': coin_sold,
             'revenue_from_sold': revenue_from_sold,
         }, ignore_index=True)
 
@@ -144,9 +157,9 @@ class TradingEnv(gym.Env):
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,
-            'btc_bought': 0,
-            'cost_of_btc': 0,
-            'btc_sold': 0,
+            'coin_bought': 0,
+            'cost_of_coin': 0,
+            'coin_sold': 0,
             'revenue_from_sold': 0,
         }])
         self.trades = []

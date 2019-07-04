@@ -103,3 +103,51 @@ class BaseDataProvider(object, metaclass=ABCMeta):
         print("after", date_col)
 
         return formatted
+
+    # Precision of fiat
+    @abstractmethod
+    def get_market_fiat_precision(self) -> int:
+        raise NotImplementedError
+
+    # Precision of cryptocurrency
+    @abstractmethod
+    def get_market_coin_precision(self) -> int:
+        raise NotImplementedError
+        
+    # Minimum ask price in fiat for trading a cryptocurrency
+    @abstractmethod
+    def get_market_min_price_limit(self) -> int:
+        raise NotImplementedError
+    
+    # Maximum ask price in fiat for trading a cryptocurrency
+    @abstractmethod
+    def get_market_max_price_limit(self) -> int:
+        raise NotImplementedError
+    
+    # Minimum amount of cryptocurrency for trading
+    @abstractmethod
+    def get_market_min_amount_limit(self) -> float:
+        raise NotImplementedError
+
+    # Minimum amount of cryptocurrency for trading
+    @abstractmethod
+    def get_market_max_amount_limit(self) -> float:
+        raise NotImplementedError
+
+    # Minimum cost of a trade
+    @abstractmethod      
+    def get_market_min_cost_limit(self) -> float:
+        raise NotImplementedError
+    
+    # Maximum cost of a trade
+    @abstractmethod      
+    def get_market_max_cost_limit(self) -> float:
+        raise NotImplementedError
+        
+    @abstractmethod      
+    def get_market_taker_fee(self) -> float:
+        raise NotImplementedError
+        
+    @abstractmethod      
+    def get_market_maker_fee(self) -> float:
+        raise NotImplementedError
