@@ -126,7 +126,7 @@ class RLTrader:
         validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(1)])
 
         model_params = self.optimize_agent_params(trial)
-        model = self.Model(self.PolicySub, train_env, verbose=self.model_verbose, nminibatches=1,
+        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=1,
                            tensorboard_log=self.tensorboard_path, **model_params)
 
         last_reward = -np.finfo(np.float16).max
