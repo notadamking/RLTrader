@@ -1,2 +1,2 @@
--r requirements.base.yml
+-r requirements.base.txt
 tensorflow
