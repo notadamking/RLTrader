@@ -11,3 +11,4 @@ empyrical
 tensorflow-gpu
 ccxt
 psycopg2
+deco

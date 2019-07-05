@@ -1,2 +1,3 @@
 -r requirements.no-gpu.txt
 pytest
+deco
