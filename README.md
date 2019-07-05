@@ -154,14 +154,10 @@ If you would like to contribute, here is the roadmap for the future of this proj
   - ~Optionally replace SQLite db with Postgres to enable multi-processed Optuna training~
     - This is enabled through Docker, though support for Postgres still needs to be improved
   - ~Replace `DummyVecEnv` with `SubProcVecEnv` everywhere throughout the code~ **[@archenroot, @arunavo4, @notadamking]**
-- Find sources of CPU bottlenecks to improve GPU utilization
-  - Replace pandas or improve speed of pandas methods by taking advantage of GPU
-- Find source of possible memory leak (in `RLTrader.optimize`) and squash it
-
+ - Allow features to be added/removed at runtime
+   - Create simple API for turning off default features (e.g. prediction, indicators, etc.)
+   - Create simple API for adding new features to observation space
 ## Stage 1:
-- Allow features to be added/removed at runtime
-  - Create simple API for turning off default features (e.g. prediction, indicators, etc.)
-  - Create simple API for adding new features to observation space
 - Add more optional features to the feature space
   - Other exchange pair data (e.g. LTC/USD, ETH/USD, EOS/BTC, etc.)
   - Twitter sentiment analysis
@@ -185,6 +181,9 @@ If you would like to contribute, here is the roadmap for the future of this proj
 - Experiment with Auto-decoders to remove noise from the observation space
 - Implement self-play in a multi-process environment to improve model exploration
   - Experiment with dueling actors vs tournament of dueling agents
+- Find sources of CPU bottlenecks to improve GPU utilization
+  - Replace pandas or improve speed of pandas methods by taking advantage of GPU
+- Find source of possible memory leak (in `RLTrader.optimize`) and squash it
 
 # Contributing
 
