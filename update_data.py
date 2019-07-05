@@ -32,7 +32,11 @@ async def save_as_csv(hourly_url: str, daily_url: str):
     print('>> pending: ', pending)  # will be empty if using default return_when setting
 
 
-if __name__ == '__main__':
+def download_async():
     loop = asyncio.get_event_loop()
     loop.run_until_complete(save_as_csv(hourly_url, daily_url))
     loop.close()
+
+
+if __name__ == '__main__':
+    download_async()

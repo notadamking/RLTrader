@@ -1,9 +1,9 @@
 import numpy as np
 from deco import concurrent
-
 from lib.RLTrader import RLTrader
 from lib.cli.RLTraderCLI import RLTraderCLI
 from lib.util.logger import init_logger
+from update_data import download_async
 
 np.warnings.filterwarnings('ignore')
 trader_cli = RLTraderCLI()
@@ -32,3 +32,5 @@ if __name__ == '__main__':
             test_trained_model=args.no_test,
             render_trained_model=args.no_render
         )
+    elif args.command == 'update-static':
+        download_async()
