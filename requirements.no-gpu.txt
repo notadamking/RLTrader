@@ -1,13 +1,2 @@
-numpy
-pandas
-sklearn
-matplotlib
-gym
-stable_baselines
-optuna
-ta
-statsmodels==0.10.0rc2
-empyrical
+-r requirements.base.yml
 tensorflow
-ccxt
-deco
