@@ -2,6 +2,7 @@
 **/__pycache__
 data/tensorboard/*
 data/agents/*
+data/postgres/*
 data/log/*
 *.pkl
 *.db
