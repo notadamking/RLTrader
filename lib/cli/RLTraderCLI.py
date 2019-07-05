@@ -1,7 +1,7 @@
 import argparse
 import os
 import multiprocessing
-from configparser import ConfigParser
+from configparser import SafeConfigParser
 
 
 class RLTraderCLI:
@@ -12,7 +12,7 @@ class RLTraderCLI:
         defaults = {}
 
         if args.from_config:
-            config = ConfigParser.SafeConfigParser()
+            config = SafeConfigParser()
             config.read([args.from_config])
             defaults = dict(config.items("Defaults"))
 

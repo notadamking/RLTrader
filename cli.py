@@ -19,6 +19,8 @@ if __name__ == '__main__':
     logger = init_logger(__name__, show_debug=args.debug)
     trader = RLTrader(**vars(args), logger=logger)
 
+    print(args)
+
     if args.command == 'optimize':
         run_concurrent_optimize(trader, args)
     elif args.command == 'train':
