@@ -21,11 +21,24 @@ https://towardsdatascience.com/using-reinforcement-learning-to-trade-bitcoin-for
 
 # Getting Started
 
+### How to find out if you have nVIDIA GPU?
+
+Linux:
+```bash
+sudo lspci | grep -i --color 'vga\|3d\|2d' | grep -i nvidia
+```
+If this returns anything, then you should have an nVIDIA card.
+
+### Basic usage
+
 The first thing you will need to do to get started is install the requirements. If your system has an nVIDIA GPU that you should start by using:
 
 ```bash
+cd "path-of-your-cloned-rl-trader-dir"
 pip install -r requirements.txt
 ```
+More information regarding how you can take advantage of your GPU while using docker: https://github.com/NVIDIA/nvidia-docker
+
 
 If you have another type of GPU or you simply want to use your CPU, use:
 
@@ -35,7 +48,7 @@ pip install -r requirements.no-gpu.txt
 
 Update your current static files, that are used by default:
 ```bash
- python update_data.py
+ python ./cli.py update-static
  ```
 
 Afterwards you can simply see the currently available options:
@@ -45,6 +58,16 @@ python ./cli.py --help
 ```
 
 or simply run the project with default options:
+
+```bash
+python ./cli.py opt-train-test
+```
+
+If you have a standard set of configs you want to run the trader against, you can specify a config file to load configuration from. Rename config/config.ini.dist to config/config.ini and run 
+
+```bash
+python ./cli.py --from-config config/config.ini opt-train-test
+```
 
 ```bash
 python ./cli.py opt-train-test
@@ -73,7 +96,7 @@ If you want to run everything within a docker container, then just use:
 Note: in case using yes as second argument, use 
 
 ```bash
-python ./ cli.py--params-db-path "postgres://rl_trader:rl_trader@localhost" opt-train-test
+python ./ cli.py --params-db-path "postgres://rl_trader:rl_trader@localhost" opt-train-test
 ```
 
 The database and it's data are pesisted under `data/postgres` locally.
@@ -88,12 +111,11 @@ If you want to run existing tests, then just use:
 ./run-tests-with-docker
 ```
 
-If you want to test and develop using docker:
+# Fire up a local docker dev environment
 ```bash
 ./dev-with-docker
 ```
 
-# Fire up a local docker dev environment
 
 # Optimizing, Training, and Testing
 
