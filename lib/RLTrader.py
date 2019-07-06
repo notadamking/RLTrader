@@ -5,9 +5,8 @@ import numpy as np
 from os import path
 from typing import Dict
 
-from deco import concurrent
 from stable_baselines.common.base_class import BaseRLModel
-from stable_baselines.common.policies import BasePolicy, MlpPolicy
+from stable_baselines.common.policies import BasePolicy, MlpLnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
@@ -23,7 +22,9 @@ def make_env(data_provider: BaseDataProvider, rank: int = 0, seed: int = 0):
         env = TradingEnv(data_provider)
         env.seed(seed + rank)
         return env
+
     set_global_seeds(seed)
+
     return _init
 
 
@@ -31,7 +32,7 @@ class RLTrader:
     data_provider = None
     study_name = None
 
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpPolicy, exchange_args: Dict = {}, **kwargs):
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpLnLstmPolicy, exchange_args: Dict = {}, **kwargs):
         self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.Model = modelClass
@@ -162,11 +163,9 @@ class RLTrader:
 
         return -1 * last_reward
 
-    @concurrent
-    def optimize(self, n_trials: int = 100, n_parallel_jobs: int = 1, *optimize_params):
+    def optimize(self, n_trials: int = 20, *optimize_params):
         try:
-            self.optuna_study.optimize(
-                self.optimize_params, n_trials=n_trials, n_jobs=n_parallel_jobs, *optimize_params)
+            self.optuna_study.optimize(self.optimize_params, n_trials=n_trials, n_jobs=1, *optimize_params)
         except KeyboardInterrupt:
             pass
 
@@ -180,7 +179,7 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 100, save_every: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
+    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
