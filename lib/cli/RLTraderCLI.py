@@ -8,7 +8,7 @@ class RLTraderCLI:
     def __init__(self):
         config_parser = argparse.ArgumentParser(add_help=False)
         config_parser.add_argument("-f", "--from-config", help="Specify config file", metavar="FILE")
-        args, remaining_argv = config_parser.parse_known_args()
+        args, _ = config_parser.parse_known_args()
         defaults = {}
 
         if args.from_config:
@@ -39,13 +39,12 @@ class RLTraderCLI:
             help='Tensorboard path',
             dest='tensorboard_path'
         )
-        self.parser.add_argument('--proc-number', type=int, default=multiprocessing.cpu_count(),
-                                 help='How many processes to spawn')
+        self.parser.add_argument('--parallel-jobs', type=int, default=multiprocessing.cpu_count(),
+                                 help='How many processes in parallel')
 
         subparsers = self.parser.add_subparsers(help='Command', dest="command")
 
-        opt_train_test_parser = subparsers.add_parser('opt-train-test', description='Optimize train and test')
-        opt_train_test_parser.add_argument('--parallel-jobs', type=int, default=1, help='How many jobs in parallel')
+        opt_train_test_parser = subparsers.add_parser('optimize-train-test', description='Optimize train and test')
         opt_train_test_parser.add_argument('--trials', type=int, default=20, help='Number of trials')
         opt_train_test_parser.add_argument('--train-epochs', type=int, default=10, help='Train for how many epochs')
         opt_train_test_parser.add_argument('--no-render', action='store_false', help='Should render the model')
@@ -63,7 +62,7 @@ class RLTraderCLI:
         test_parser.add_argument('--model-epoch', type=int, default=1, help='Model epoch index')
         test_parser.add_argument('--no-render', action='store_false', help='Do not render test')
 
-        subparsers.add_parser('update-static', description='Update static data')
+        subparsers.add_parser('update-static-data', description='Update static data')
 
         self.parser.set_defaults(**defaults)
 
