@@ -4,6 +4,8 @@ import numpy as np
 
 from os import path
 from typing import Dict
+
+from deco import concurrent
 from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.policies import BasePolicy, MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
@@ -160,6 +162,7 @@ class RLTrader:
 
         return -1 * last_reward
 
+    @concurrent
     def optimize(self, n_trials: int = 100, n_parallel_jobs: int = 1, *optimize_params):
         try:
             self.optuna_study.optimize(

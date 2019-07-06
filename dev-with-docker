@@ -2,7 +2,8 @@
 
 set -e
 
-CWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+CWD=$(realpath "${SCRIPT_DIR}")
 
 if [[ -z $1 ]]; then
     echo "Should have 1 argument: cpu or gpu"
@@ -26,7 +27,7 @@ if [[ -n $2 ]]; then
         --tty \
         --user "$(id -u):$(id -g)" \
         --volume "$CWD/data/postgres":"/var/lib/postgresql/data/trader-data" \
-      trader-rl-postgres
+      trader-rl-postgres-dev
     shift
 fi
 
@@ -47,20 +48,21 @@ if [ $CPU_LIMIT == 0 ];then
 fi
 
 if [ $GPU == 0 ]; then
-    N="trader-rl-cpu"
+    N="trader-rl-cpu-dev"
     docker build --tag $N -f "$CWD/docker/Dockerfile.cpu" "$CWD"
 else
-    N="trader-rl-gpu"
+    N="trader-rl-gpu-dev"
     docker build --tag $N -f "$CWD/docker/Dockerfile.gpu" "$CWD"
 fi
 
-echo "CWD: $CWD - Procs: $CPU_LIMIT Memory: ${MEM_LIMIT}bytes"
+docker rm -fv rl_trader_dev || true
 docker run \
+    --name 'rl_trader_dev' \
     --user $(id -u):$(id -g) \
+    --entrypoint 'bash' \
     --interactive \
     --memory "${MEM_LIMIT}b" \
     --cpus "${CPU_LIMIT}" \
     --tty \
     --volume "${CWD}":/code \
-    "$N" \
-        python /code/cli.py $@
+    "$N"
