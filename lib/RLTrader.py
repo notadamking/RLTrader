@@ -6,7 +6,7 @@ from os import path
 from typing import Dict
 
 from stable_baselines.common.base_class import BaseRLModel
-from stable_baselines.common.policies import BasePolicy, MlpLnLstmPolicy
+from stable_baselines.common.policies import BasePolicy, MlpPolicy, MlpLstmPolicy, FeedForwardPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
@@ -15,6 +15,9 @@ from lib.env.TradingEnv import TradingEnv
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
+
+import tensorflow as tf
+
 
 
 def make_env(data_provider: BaseDataProvider, rank: int = 0, seed: int = 0):
@@ -26,11 +29,20 @@ def make_env(data_provider: BaseDataProvider, rank: int = 0, seed: int = 0):
     return _init
 
 
+class BiggerPolicy(FeedForwardPolicy):
+    def __init__(self, *args, **kwargs):
+        super(BiggerPolicy, self).__init__(*args, **kwargs,
+                                           act_fun=tf.nn.relu,
+                                           net_arch=[dict(pi=[256, 256, 128],
+                                                          vf=[256, 256, 128])],
+                                           feature_extraction="mlp")
+
+
 class RLTrader:
     data_provider = None
     study_name = None
 
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpLnLstmPolicy, exchange_args: Dict = {}, **kwargs):
+    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = BiggerPolicy, exchange_args: Dict = {}, **kwargs):
         self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.Model = modelClass
@@ -103,15 +115,15 @@ class RLTrader:
 
     def optimize_agent_params(self, trial):
         if self.Model != PPO2:
-            return {'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.)}
+            return {'learning_rate': trial.suggest_loguniform('learning_rate', 5e-6, 0.8)}
 
         return {
             'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
             'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 5e-6, 0.8),
             'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
-            'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.4),
-            'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
+            'cliprange': trial.suggest_uniform('cliprange', 0.01, 0.4),
+            'noptepochs': int(trial.suggest_loguniform('noptepochs', 5, 60)),
             'lam': trial.suggest_uniform('lam', 0.8, 1.)
         }
 
