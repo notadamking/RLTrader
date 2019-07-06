@@ -1,6 +1,5 @@
 import numpy as np
-
-from deco import concurrent
+import multiprocessing
 
 from lib.RLTrader import RLTrader
 from lib.cli.RLTraderCLI import RLTraderCLI
@@ -12,9 +11,23 @@ trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
 
 
-@concurrent(processes=args.parallel_jobs)
-def run_concurrent_optimize(trader: RLTrader, args):
-    trader.optimize(args.trials, args.trials, args.parallel_jobs)
+def run_concurrent_optimize():
+    trader = RLTrader(**vars(args))
+    trader.optimize(args.trials)
+
+
+def concurrent_optimize():
+    processes = []
+    for i in range(args.parallel_jobs):
+        processes.append(multiprocessing.Process(target=run_concurrent_optimize, args=()))
+
+    print(processes)
+
+    for p in processes:
+        p.start()
+
+    for p in processes:
+        p.join()
 
 
 if __name__ == '__main__':
@@ -22,17 +35,10 @@ if __name__ == '__main__':
     trader = RLTrader(**vars(args), logger=logger)
 
     if args.command == 'optimize':
-        run_concurrent_optimize(trader, args)
+        concurrent_optimize()
     elif args.command == 'train':
         trader.train(n_epochs=args.epochs)
     elif args.command == 'test':
         trader.test(model_epoch=args.model_epoch, should_render=args.no_render)
-    elif args.command == 'optimize-train-test':
-        run_concurrent_optimize(trader, args)
-        trader.train(
-            n_epochs=args.train_epochs,
-            test_trained_model=args.no_test,
-            render_trained_model=args.no_render
-        )
     elif args.command == 'update-static-data':
         download_data_async()

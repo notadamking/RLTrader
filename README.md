@@ -63,17 +63,17 @@ python ./cli.py --help
 or simply run the project with default options:
 
 ```bash
-python ./cli.py optimize-train-test
+python ./cli.py optimize
 ```
 
 If you have a standard set of configs you want to run the trader against, you can specify a config file to load configuration from. Rename config/config.ini.dist to config/config.ini and run
 
 ```bash
-python ./cli.py --from-config config/config.ini optimize-train-test
+python ./cli.py --from-config config/config.ini optimize
 ```
 
 ```bash
-python ./cli.py optimize-train-test
+python ./cli.py optimize
 ```
 
 ### Testing with vagrant
@@ -92,7 +92,7 @@ Note: With vagrant you cannot take full advantage of your GPU, so is mainly for 
 If you want to run everything within a docker container, then just use:
 
 ```bash
-./run-with-docker (cpu|gpu) (yes|no) optimize-train-test
+./run-with-docker (cpu|gpu) (yes|no) optimize
 ```
 
 - cpu - start the container using CPU requirements
@@ -101,7 +101,7 @@ If you want to run everything within a docker container, then just use:
   Note: in case using yes as second argument, use
 
 ```bash
-python ./ cli.py --params-db-path "postgres://rl_trader:rl_trader@localhost" optimize-train-test
+python ./ cli.py --params-db-path "postgres://rl_trader:rl_trader@localhost" optimize
 ```
 
 The database and it's data are pesisted under `data/postgres` locally.
