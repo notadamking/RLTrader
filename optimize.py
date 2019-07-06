@@ -12,19 +12,21 @@ def optimize_code(params):
 
 
 if __name__ == '__main__':
-    n_process = multiprocessing.cpu_count()
-    params = {}
+    n_process = multiprocessing.cpu_count() - 4
+    params = {
+        'n_envs': n_process
+    }
 
-    process = []
-    for i in range(n_process):
-        process.append(multiprocessing.Process(target=optimize_code, args=(params,)))
+    # process = []
+    # for i in range(n_process):
+    #     process.append(multiprocessing.Process(target=optimize_code, args=(params,)))
 
-    for p in process:
-        p.start()
+    # for p in process:
+    #     p.start()
 
-    for p in process:
-        p.join()
+    # for p in process:
+    #     p.join()
 
     trader = RLTrader(**params)
 
-    trader.train(test_trained_model=True, render_trained_model=True)
+    trader.train(test_trained_model=True, render_trained_model=False)

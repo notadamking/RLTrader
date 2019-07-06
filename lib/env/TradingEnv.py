@@ -5,6 +5,7 @@ import numpy as np
 from gym import spaces
 
 from lib.env.render import TradingChart
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit
 from lib.data.providers import BaseDataProvider
 from lib.data.features.transform import max_min_normalize, log_and_difference
 from lib.util.logger import init_logger
@@ -15,16 +16,16 @@ class TradingEnv(gym.Env):
     metadata = {'render.modes': ['human', 'system', 'none']}
     viewer = None
 
-    def __init__(self, data_provider: BaseDataProvider, initial_balance=10000, commission=0.0025, **kwargs):
+    def __init__(self, data_provider: BaseDataProvider, reward_strategy: BaseRewardStrategy = IncrementalProfit, initial_balance=10000, commission=0.0025, **kwargs):
         super(TradingEnv, self).__init__()
 
         self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
         self.data_provider = data_provider
+        self.reward_strategy = reward_strategy
         self.initial_balance = initial_balance
         self.commission = commission
 
-        self.reward_fn = kwargs.get('reward_fn', self._reward_incremental_profit)
         self.benchmarks = kwargs.get('benchmarks', [])
         self.enable_stationarization = kwargs.get('enable_stationarization', True)
 
@@ -101,25 +102,13 @@ class TradingEnv(gym.Env):
             'revenue_from_sold': revenue_from_sold,
         }, ignore_index=True)
 
-    def _reward_incremental_profit(self, observations, net_worths, account_history, last_bought, last_sold, current_price):
-        prev_balance = account_history['balance'].values[-2]
-        curr_balance = account_history['balance'].values[-1]
-        reward = 0
-
-        if curr_balance > prev_balance:
-            reward = net_worths[-1] - net_worths[last_bought]
-        elif curr_balance < prev_balance:
-            reward = observations['Close'].values[last_sold] - current_price
-
-        return reward
-
     def _reward(self):
-        reward = self.reward_fn(observations=self.observations,
-                                net_worths=self.net_worths,
-                                account_history=self.account_history,
-                                last_bought=self.last_bought,
-                                last_sold=self.last_sold,
-                                current_price=self._current_price())
+        reward = self.reward_strategy.get_reward(observations=self.observations,
+                                                 net_worths=self.net_worths,
+                                                 account_history=self.account_history,
+                                                 last_bought=self.last_bought,
+                                                 last_sold=self.last_sold,
+                                                 current_price=self._current_price())
 
         return reward if np.isfinite(reward) else 0
 
