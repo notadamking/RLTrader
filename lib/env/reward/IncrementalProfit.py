@@ -2,7 +2,7 @@ import pandas as pd
 
 from typing import List
 
-from lib.env.reward import BaseRewardStrategy
+from lib.env.reward.BaseRewardStrategy import BaseRewardStrategy
 
 
 class IncrementalProfit(BaseRewardStrategy):

@@ -5,8 +5,8 @@ from typing import List
 
 
 class BaseRewardStrategy(object, metaclass=ABCMeta):
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def get_reward(observations: pd.DataFrame,
                    account_history: pd.DataFrame,
                    net_worths: List[float],
