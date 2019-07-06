@@ -21,15 +21,20 @@ class TradingEnv(gym.Env):
 
         self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
+        self.base_precision = kwargs.get('base_precision', 2)
+        self.asset_precision = kwargs.get('asset_precision', 8)
+        self.min_cost_limit = kwargs.get('min_cost_limit', 1E-3)
+        self.min_amount_limit = kwargs.get('min_amount_limit', 1E-3)
+
         self.data_provider = data_provider
         self.reward_strategy = reward_strategy
-        self.initial_balance = initial_balance
+        self.initial_balance = round(initial_balance, self.base_precision)
         self.commission = commission
 
         self.benchmarks = kwargs.get('benchmarks', [])
         self.enable_stationarization = kwargs.get('enable_stationarization', True)
 
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(24)
 
         n_features = 5 + len(self.data_provider.columns)
 
@@ -42,7 +47,7 @@ class TradingEnv(gym.Env):
         self.observations = self.observations.append(self.current_ohlcv, ignore_index=True)
 
         if self.enable_stationarization:
-            observations = log_and_difference(self.observations)
+            observations = log_and_difference(self.observations, inplace=False)
         else:
             observations = self.observations
 
@@ -50,7 +55,12 @@ class TradingEnv(gym.Env):
 
         obs = observations.values[-1]
 
-        scaled_history = max_min_normalize(self.account_history)
+        if self.enable_stationarization:
+            scaled_history = log_and_difference(self.account_history, inplace=False)
+        else:
+            scaled_history = self.account_history
+
+        scaled_history = max_min_normalize(scaled_history, inplace=False)
 
         obs = np.insert(obs, len(obs), scaled_history.values[-1], axis=0)
 
@@ -59,46 +69,59 @@ class TradingEnv(gym.Env):
 
         return obs
 
-    def _current_price(self):
-        return float(self.current_ohlcv['Close'])
+    def _current_price(self, ohlcv_key: str = 'Close'):
+        return float(self.current_ohlcv[ohlcv_key])
 
-    def _take_action(self, action):
-        current_price = self._current_price()
-
-        btc_bought = 0
-        btc_sold = 0
-        cost_of_btc = 0
+    def _make_trade(self, type: str, amount: int, current_price: float):
+        asset_bought = 0
+        asset_sold = 0
+        cost_of_asset = 0
         revenue_from_sold = 0
 
-        if action == 0:
-            price = current_price * (1 + self.commission)
-            btc_bought = self.balance / price
-            cost_of_btc = self.balance
+        if type == 'buy':
+            price = round(current_price * (1 + self.commission), self.base_precision)
+            cost_of_asset = round(self.balance * amount, self.base_precision)
+            asset_bought = round(cost_of_asset, self.asset_precision)
 
             self.last_bought = self.current_step
-            self.btc_held += btc_bought
-            self.balance -= cost_of_btc
-        elif action == 1:
-            price = current_price * (1 - self.commission)
-            btc_sold = self.btc_held
-            revenue_from_sold = btc_sold * price
+            self.asset_held += asset_bought
+            self.balance -= cost_of_asset
+
+            self.trades.append({'step': self.current_step, 'amount': asset_sold,
+                                'total': revenue_from_sold, 'type': 'sell'})
+        elif type == 'sell':
+            price = round(current_price * (1 - self.commission), self.base_precision)
+            asset_sold = round(self.asset_held * amount, self.asset_precision)
+            revenue_from_sold = round(asset_sold * price, self.base_precision)
 
             self.last_sold = self.current_step
-            self.btc_held -= btc_sold
+            self.asset_held -= asset_sold
             self.balance += revenue_from_sold
 
-        if btc_sold > 0 or btc_bought > 0:
-            self.trades.append({'step': self.current_step,
-                                'amount': btc_sold if btc_sold > 0 else btc_bought, 'total': revenue_from_sold if btc_sold > 0 else cost_of_btc,
-                                'type': 'sell' if btc_sold > 0 else 'buy'})
+            self.trades.append({'step': self.current_step, 'amount': asset_bought,
+                                'total': cost_of_asset, 'type': 'buy'})
 
-        self.net_worths.append(self.balance + self.btc_held * current_price)
+        return asset_bought, asset_sold, cost_of_asset, revenue_from_sold
+
+    def _take_action(self, action: int):
+        current_price = self._current_price()
+
+        action_type = int(action / 4)
+        action_amount = 1 / (action % 4 + 1)
+
+        if action_type == 0 and self.balance >= self.min_cost_limit:
+            asset_bought, asset_sold, cost_of_asset, revenue_from_sold = self._make_trade(action_type, action_amount, current_price)
+        elif action_type == 1 and self.asset_held >= self.min_amount_limit:
+            asset_bought, asset_sold, cost_of_asset, revenue_from_sold = self._make_trade(action_type, action_amount, current_price)
+
+        current_net_worth = round(self.balance + self.asset_held * current_price, self.base_precision)
+        self.net_worths.append(current_net_worth)
 
         self.account_history = self.account_history.append({
             'balance': self.balance,
-            'btc_bought': btc_bought,
-            'cost_of_btc': cost_of_btc,
-            'btc_sold': btc_sold,
+            'asset_bought': asset_bought,
+            'cost_of_asset': cost_of_asset,
+            'asset_sold': asset_sold,
             'revenue_from_sold': revenue_from_sold,
         }, ignore_index=True)
 
@@ -109,6 +132,13 @@ class TradingEnv(gym.Env):
                                                  last_bought=self.last_bought,
                                                  last_sold=self.last_sold,
                                                  current_price=self._current_price())
+
+        self.rewards.append(reward)
+
+        stationary_rewards = log_and_difference(self.rewards, inplace=False)
+        stationary_rewards = max_min_normalize(stationary_rewards)
+
+        reward = stationary_rewards[-1]
 
         return reward if np.isfinite(reward) else 0
 
@@ -123,19 +153,20 @@ class TradingEnv(gym.Env):
 
         self.balance = self.initial_balance
         self.net_worths = [self.initial_balance]
-        self.btc_held = 0
+        self.asset_held = 0
         self.current_step = 0
         self.last_bought = 0
         self.last_sold = 0
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,
-            'btc_bought': 0,
-            'cost_of_btc': 0,
-            'btc_sold': 0,
+            'asset_bought': 0,
+            'cost_of_asset': 0,
+            'asset_sold': 0,
             'revenue_from_sold': 0,
         }])
         self.trades = []
+        self.rewards = []
 
         return self._next_observation()
 
