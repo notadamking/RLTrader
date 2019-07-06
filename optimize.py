@@ -12,7 +12,7 @@ def optimize_code(params):
 
 
 if __name__ == '__main__':
-    n_process = multiprocessing.cpu_count() - 4
+    n_process = multiprocessing.cpu_count()
     params = {}
 
     processes = []
