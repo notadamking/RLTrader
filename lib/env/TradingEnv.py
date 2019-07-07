@@ -7,7 +7,7 @@ from gym import spaces
 from lib.env.render import TradingChart
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit
 from lib.data.providers import BaseDataProvider
-from lib.data.features.transform import max_min_normalize, log_and_difference
+from lib.data.features.transform import max_min_normalize, log_and_difference, FastTransform
 from lib.util.logger import init_logger
 
 
@@ -36,21 +36,28 @@ class TradingEnv(gym.Env):
         self.obs_shape = (1, n_features)
         self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float16)
         self.observations = pd.DataFrame(None, columns=self.data_provider.columns)
+        self.fast_transform_observations = FastTransform()
+        self.fast_transform_account_history = FastTransform()
+
+        self.fast_log_observation = self.observations
 
     def _next_observation(self):
         self.current_ohlcv = self.data_provider.next_ohlcv()
         self.observations = self.observations.append(self.current_ohlcv, ignore_index=True)
 
         if self.enable_stationarization:
-            observations = log_and_difference(self.observations)
+            #observations = log_and_difference(self.observations)
+            log_observation = log_and_difference(self.observations.tail(2), inplace= False)
+            self.fast_log_observation =  self.fast_log_observation.append(log_observation.tail(1), ignore_index=True)
+            observations = self.fast_log_observation
         else:
             observations = self.observations
 
-        observations = max_min_normalize(observations)
+        observations = self.fast_transform_observations.max_min_normalize(observations)
 
         obs = observations.values[-1]
 
-        scaled_history = max_min_normalize(self.account_history)
+        scaled_history = self.fast_transform_account_history.max_min_normalize(self.account_history)
 
         obs = np.insert(obs, len(obs), scaled_history.values[-1], axis=0)
 
