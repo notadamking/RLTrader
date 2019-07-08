@@ -14,7 +14,7 @@ def optimize_code(params):
 
 
 if __name__ == '__main__':
-    n_processes = 6  # os.cpu_count()
+    n_processes = os.cpu_count()
     params = {'n_envs': n_processes}
 
     opt_pool = ThreadPool(processes=n_processes)
