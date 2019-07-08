@@ -13,17 +13,19 @@ def optimize_code(params):
 
 if __name__ == '__main__':
     n_process = multiprocessing.cpu_count()
-    params = {}
+    params = {'n_cpu': n_process}
 
-    processes = []
-    for i in range(n_process):
-        processes.append(multiprocessing.Process(target=optimize_code, args=(params,)))
+    # processes = []
+    # for i in range(n_process):
+    #     processes.append(multiprocessing.Process(target=optimize_code, args=(params,)))
 
-    for p in processes:
-        p.start()
+    # for p in processes:
+    #     p.start()
 
-    for p in processes:
-        p.join()
+    # for p in processes:
+    #     p.join()
 
     trader = RLTrader(**params)
-    trader.train(test_trained_model=True, render_trained_model=True)
+    # trader.train(test_trained_model=True, render_trained_model=True)
+
+    trader.test(model_epoch=10)

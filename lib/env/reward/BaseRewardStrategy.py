@@ -5,9 +5,13 @@ from typing import List
 
 
 class BaseRewardStrategy(object, metaclass=ABCMeta):
-    @staticmethod
     @abstractmethod
-    def get_reward(observations: pd.DataFrame,
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def get_reward(self,
+                   observations: pd.DataFrame,
                    account_history: pd.DataFrame,
                    net_worths: List[float],
                    last_bought: int,
