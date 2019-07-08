@@ -13,7 +13,7 @@ def optimize_code(params):
 
 if __name__ == '__main__':
     n_process = multiprocessing.cpu_count()
-    params = {}
+    params = {'n_cpu': n_process}
 
     processes = []
     for i in range(n_process):
