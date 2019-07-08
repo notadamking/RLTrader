@@ -125,6 +125,14 @@ If you want to run existing tests, then just use:
 ./dev-with-docker
 ```
 
+# Windows 10 installation, no CUDA installation needed
+
+conda create --name rltrader python=3.6.8 pip git
+conda activate rltrader
+conda install tensorflow-gpu
+git clone https://github.com/notadamking/RLTrader
+pip install -r RLTrader/requirements.txt
+
 # Optimizing, Training, and Testing
 
 While you could just let the agent train and run with the default PPO2 hyper-parameters, your agent would likely not be very profitable. The `stable-baselines` library provides a great set of default parameters that work for most problem domains, but we need to better.
