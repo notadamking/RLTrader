@@ -12,6 +12,7 @@ from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
@@ -32,11 +33,17 @@ class RLTrader:
     data_provider = None
     study_name = None
 
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = MlpLnLstmPolicy, exchange_args: Dict = {}, **kwargs):
+    def __init__(self,
+                 model: BaseRLModel = PPO2,
+                 policy: BasePolicy = MlpLnLstmPolicy,
+                 reward_strategy: BaseRewardStrategy = IncrementalProfit,
+                 exchange_args: Dict = {},
+                 **kwargs):
         self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
-        self.Model = modelClass
-        self.Policy = policyClass
+        self.Model = model
+        self.Policy = policy
+        self.Reward_Strategy = reward_strategy
         self.exchange_args = exchange_args
         self.tensorboard_path = kwargs.get('tensorboard_path', None)
         self.input_data_path = kwargs.get('input_data_path', 'data/input/coinbase-1h-btc-usd.csv')
@@ -76,9 +83,11 @@ class RLTrader:
         try:
             train_env = DummyVecEnv([lambda: TradingEnv(self.data_provider)])
             model = self.Model(self.Policy, train_env, nminibatches=1)
-            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}'
+            strategy = self.Reward_Strategy()
+
+            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}__{strategy.__class__.__name__}'
         except:
-            self.study_name = f'UnknownModel__UnknownPolicy'
+            self.study_name = f'UnknownModel__UnknownPolicy__UnknownStrategy'
 
         self.optuna_study = optuna.create_study(
             study_name=self.study_name, storage=self.params_db_path, load_if_exists=True)
@@ -142,12 +151,19 @@ class RLTrader:
             rewards = []
             n_episodes, reward_sum = 0, 0.0
 
+            trades = train_env.get_attr('trades')
+
+            if len(trades[0]) < 1:
+                self.logger.info('Pruning trial for not making any trades: ', eval_idx)
+                raise optuna.structs.TrialPruned()
+
             state = None
             obs = validation_env.reset()
             while n_episodes < n_tests_per_eval:
                 action, state = model.predict(obs, state=state)
-                obs, reward, done, _ = validation_env.step(action)
-                reward_sum += reward
+                obs, reward, done, _ = validation_env.step([action])
+
+                reward_sum += reward[0]
 
                 if all(done):
                     rewards.append(reward_sum)
@@ -204,8 +220,8 @@ class RLTrader:
                 model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
                 model.save(model_path)
 
-            if test_trained_model:
-                self.test(model_epoch, should_render=render_trained_model)
+                if test_trained_model:
+                    self.test(model_epoch, should_render=render_trained_model)
 
         self.logger.info(f'Trained {n_epochs} models')
 
