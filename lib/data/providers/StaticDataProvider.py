@@ -17,11 +17,15 @@ class StaticDataProvider(BaseDataProvider):
 
         if data_frame is not None:
             self.data_frame = data_frame
-        elif csv_data_path is not None and os.path.isfile(csv_data_path):
+        elif csv_data_path is not None:
+            if not os.path.isfile(csv_data_path):
+                raise ValueError(
+                    'Invalid "csv_data_path" argument passed to StaticDataProvider, file could not be found.')
+
             self.data_frame = pd.read_csv(csv_data_path)
         else:
             raise ValueError(
-                'StaticDataProvider requires either a data_frame or csv_data_path argument.')
+                'StaticDataProvider requires either a "data_frame" or "csv_data_path argument".')
 
         if not skip_prepare_data:
             self.data_frame = self.prepare_data(self.data_frame)
