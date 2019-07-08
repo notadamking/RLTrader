@@ -230,23 +230,28 @@ class RLTrader:
 
         del train_provider
 
-        test_env = SubprocVecEnv([make_env(test_provider, i) for i in range(self.n_envs)])
+        test_env = DummyVecEnv([make_env(test_provider, i) for i in range(1)])
 
         model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
         model = self.Model.load(model_path, env=test_env)
 
         self.logger.info(f'Testing model ({self.study_name}__{model_epoch})')
 
+        zero_completed_obs = np.zeros((self.n_envs,) + test_env.observation_space.shape)
+        zero_completed_obs[0, :] = test_env.reset()
+
         state = None
-        obs, rewards = test_env.reset(), []
+        rewards = []
 
         for _ in range(len(test_provider.data_frame)):
-            action, state = model.predict(obs, state=state)
-            obs, reward, _, __ = test_env.step(action)
+            action, state = model.predict(zero_completed_obs, state=state)
+            obs, reward, _, __ = test_env.step([action])
+
+            zero_completed_obs[0, :] = obs
 
             rewards.append(reward)
 
-            if should_render and self.n_envs == 1:
+            if should_render:
                 test_env.render(mode='human')
 
         self.logger.info(

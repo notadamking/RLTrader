@@ -3,8 +3,9 @@
 [![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![GPL License](https://img.shields.io/github/license/notadamking/RLTrader.svg?color=brightgreen)](https://opensource.org/licenses/GPL-3.0/)
+[![Discord](https://img.shields.io/discord/592446624882491402.svg?color=brightgreen)](https://discord.gg/ZZ7BGWh)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
-[![Github Stars](https://img.shields.io/github/stars/notadamking/RLTrader.svg)](https://github.com/notadamking/RLTrader)
+[![Github Release](https://img.shields.io/github/release/notadamking/RLTrader.svg)](https://github.com/notadamking/RLTrader)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
@@ -63,17 +64,17 @@ python ./cli.py --help
 or simply run the project with default options:
 
 ```bash
-python ./cli.py optimize-train-test
+python ./cli.py optimize
 ```
 
 If you have a standard set of configs you want to run the trader against, you can specify a config file to load configuration from. Rename config/config.ini.dist to config/config.ini and run
 
 ```bash
-python ./cli.py --from-config config/config.ini optimize-train-test
+python ./cli.py --from-config config/config.ini optimize
 ```
 
 ```bash
-python ./cli.py optimize-train-test
+python ./cli.py optimize
 ```
 
 ### Testing with vagrant
@@ -92,7 +93,7 @@ Note: With vagrant you cannot take full advantage of your GPU, so is mainly for 
 If you want to run everything within a docker container, then just use:
 
 ```bash
-./run-with-docker (cpu|gpu) (yes|no) optimize-train-test
+./run-with-docker (cpu|gpu) (yes|no) optimize
 ```
 
 - cpu - start the container using CPU requirements
@@ -101,7 +102,7 @@ If you want to run everything within a docker container, then just use:
   Note: in case using yes as second argument, use
 
 ```bash
-python ./ cli.py --params-db-path "postgres://rl_trader:rl_trader@localhost" optimize-train-test
+python ./ cli.py --params-db-path "postgres://rl_trader:rl_trader@localhost" optimize
 ```
 
 The database and it's data are pesisted under `data/postgres` locally.

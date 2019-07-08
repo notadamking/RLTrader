@@ -44,12 +44,6 @@ class RLTraderCLI:
 
         subparsers = self.parser.add_subparsers(help='Command', dest="command")
 
-        opt_train_test_parser = subparsers.add_parser('optimize-train-test', description='Optimize train and test')
-        opt_train_test_parser.add_argument('--trials', type=int, default=20, help='Number of trials')
-        opt_train_test_parser.add_argument('--train-epochs', type=int, default=10, help='Train for how many epochs')
-        opt_train_test_parser.add_argument('--no-render', action='store_false', help='Should render the model')
-        opt_train_test_parser.add_argument('--no-test', action='store_false', help='Should test the model')
-
         optimize_parser = subparsers.add_parser('optimize', description='Optimize model parameters')
         optimize_parser.add_argument('--trials', type=int, default=1, help='Number of trials')
 
