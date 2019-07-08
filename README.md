@@ -145,7 +145,7 @@ Feel free to ask any questions in the Discord!
 Enter and run the following snippet in the first cell to load RLTrader into a Google Colab environment. Don't forget to set hardware acceleration to GPU to speed up training! 
 
 ```
-!git init && git remote add origin https://github.com/notadamking/Bitcoin-Trader-RL.git && git pull origin master
+!git init && git remote add origin https://github.com/notadamking/RLTrader.git && git pull origin master
 !pip install -r requirements.txt
 ```
 
