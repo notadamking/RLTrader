@@ -24,6 +24,7 @@ def concurrent_optimize():
     print(processes)
 
     for p in processes:
+        p.daemon = True
         p.start()
 
     for p in processes:
