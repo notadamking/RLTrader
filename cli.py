@@ -1,8 +1,7 @@
 import numpy as np
 
-from multiprocessing.pool import ThreadPool
+from multiprocessing import Process
 
-from lib.RLTrader import RLTrader
 from lib.cli.RLTraderCLI import RLTraderCLI
 from lib.util.logger import init_logger
 from lib.cli.functions import download_data_async
@@ -12,25 +11,30 @@ trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
 
 
-def run_optimize(params):
-    trader_args, logger = params
+def run_optimize(args, logger):
+    from lib.RLTrader import RLTrader
 
-    trader = RLTrader(**vars(trader_args), logger=logger)
-    trader.optimize(trader_args.trials)
-
-
-def optimize_concurrent(trader_args, logger):
-    n_processes = trader_args.parallel_jobs
-
-    opt_pool = ThreadPool(processes=n_processes)
-    opt_pool.map(run_optimize, [((trader_args, logger)) for _ in range(n_processes)])
+    trader = RLTrader(**vars(args), logger=logger)
+    trader.optimize(args.trials)
 
 
 if __name__ == '__main__':
     logger = init_logger(__name__, show_debug=args.debug)
 
     if args.command == 'optimize':
-        optimize_concurrent(args, logger)
+        n_processes = args.parallel_jobs
+
+        processes = []
+        for _ in range(n_processes):
+            processes.append(Process(target=run_optimize, args=(args, logger)))
+
+        for proc in processes:
+            proc.start()
+
+        for proc in processes:
+            proc.join()
+
+    from lib.RLTrader import RLTrader
 
     trader = RLTrader(**vars(args), logger=logger)
 
