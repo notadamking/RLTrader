@@ -28,7 +28,7 @@ class RLTraderCLI:
         self.parser.add_argument("--pair", "-p", type=str, default="BTC/USD")
         self.parser.add_argument("--debug", "-n", action='store_false')
         self.parser.add_argument('--mini-batches', type=int, default=1, help='Mini batches', dest='n_minibatches')
-        self.parser.add_argument('--train-split-percentage', type=int, default=0.8, help='Train set percentage')
+        self.parser.add_argument('--train-split-percentage', type=float, default=0.8, help='Train set percentage')
         self.parser.add_argument('--verbose-model', type=int, default=1, help='Verbose model')
         self.parser.add_argument('--params-db-path', type=str, default='sqlite:///data/params.db',
                                  help='Params path')
