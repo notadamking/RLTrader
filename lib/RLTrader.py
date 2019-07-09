@@ -197,7 +197,7 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
+    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = False, render_trained_model: bool = False, render_trained_tearsheet: bool = False):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
@@ -223,7 +223,7 @@ class RLTrader:
                 model.save(model_path)
 
                 if test_trained_model:
-                    self.test(model_epoch, should_render=render_trained_model)
+                    self.test(model_epoch, should_render=render_trained_model, render_tearsheet=render_trained_tearsheet)
 
         self.logger.info(f'Trained {n_epochs} models')
 

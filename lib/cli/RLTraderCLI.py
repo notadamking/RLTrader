@@ -55,6 +55,7 @@ class RLTraderCLI:
         test_parser = subparsers.add_parser('test', description='Test model')
         test_parser.add_argument('--model-epoch', type=int, default=1, help='Model epoch index')
         test_parser.add_argument('--no-render', action='store_false', help='Do not render test')
+        test_parser.add_argument('--no-tearsheet', action='store_false', help='Do not render tearsheet')
 
         subparsers.add_parser('update-static-data', description='Update static data')
 
