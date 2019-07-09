@@ -7,7 +7,7 @@ from lib.env.reward.BaseRewardStrategy import BaseRewardStrategy
 
 class IncrementalProfit(BaseRewardStrategy):
     def __init__(self):
-        pass
+        super(IncrementalProfit, self).__init__()
 
     def reset_reward(self):
         pass

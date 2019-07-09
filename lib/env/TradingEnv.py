@@ -26,7 +26,7 @@ class TradingEnv(gym.Env):
 
     def __init__(self,
                  data_provider: BaseDataProvider,
-                 reward_strategy: BaseRewardStrategy = WeightedUnrealisedProfit,
+                 reward_strategy: BaseRewardStrategy = IncrementalProfit,
                  initial_balance: int = 10000,
                  commission: float = 0.0025,
                  **kwargs):
