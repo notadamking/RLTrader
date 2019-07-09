@@ -11,6 +11,5 @@ empyrical
 ccxt
 psycopg2
 configparser
-pytest[test]
 tensorflow-gpu[tf-gpu]
 tensorflow[tf-cpu]
