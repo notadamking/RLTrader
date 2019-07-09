@@ -37,8 +37,9 @@ If this returns anything, then you should have an nVIDIA card.
 The first thing you will need to do to get started is install the requirements. If your system has an nVIDIA GPU that you should start by using:
 
 ```bash
-cd "path-of-your-cloned-rl-trader-dir"
-pip install -r requirements.txt
+git clone https://github.com/notadamking/RLTrader.git  
+cd RLTrader   
+pip install -r requirements.txt[tf-gpu]
 ```
 
 More information regarding how you can take advantage of your GPU while using docker: https://github.com/NVIDIA/nvidia-docker
@@ -46,7 +47,7 @@ More information regarding how you can take advantage of your GPU while using do
 If you have another type of GPU or you simply want to use your CPU, use:
 
 ```bash
-pip install -r requirements.no-gpu.txt
+pip install -r requirements.txt[tf-cpu]
 ```
 
 Update your current static files, that are used by default:
@@ -150,7 +151,7 @@ From there, agents will be trained using the best set of hyper-parameters, and l
 Feel free to ask any questions in the Discord!
 
 # Google Colab
-Enter and run the following snippet in the first cell to load RLTrader into a Google Colab environment. Don't forget to set hardware acceleration to GPU to speed up training! 
+Enter and run the following snippet in the first cell to load RLTrader into a Google Colab environment. Don't forget to set hardware acceleration to GPU to speed up training!
 
 ```
 !git init && git remote add origin https://github.com/notadamking/RLTrader.git && git pull origin master

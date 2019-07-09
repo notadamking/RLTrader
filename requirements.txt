@@ -1,2 +1,16 @@
--r requirements.base.txt
-tensorflow-gpu
+numpy
+pandas
+sklearn
+matplotlib
+gym
+stable_baselines
+optuna
+ta
+statsmodels==0.10.0rc2
+empyrical
+ccxt
+psycopg2
+configparser
+pytest[test]
+tensorflow-gpu[tf-gpu]
+tensorflow[tf-cpu]

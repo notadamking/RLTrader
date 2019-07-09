@@ -1,2 +1,0 @@
--r requirements.no-gpu.txt
-pytest
