@@ -140,7 +140,7 @@ class TradingChart:
         self._render_volume(step_range, times)
         self._render_trades(step_range, trades)
 
-        date_col = pd.to_datetime(self.df['Date'], unit='ms')
+        date_col = pd.to_datetime(self.df['Date'], unit='s').dt.strftime('%m/%d/%Y %H:%M')
         date_labels = date_col.values[step_range]
 
         self.price_ax.set_xticklabels(date_labels, rotation=45, horizontalalignment='right')

@@ -3,8 +3,9 @@
 [![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](http://makeapullrequest.com)
 [![GPL License](https://img.shields.io/github/license/notadamking/RLTrader.svg?color=brightgreen)](https://opensource.org/licenses/GPL-3.0/)
+[![Discord](https://img.shields.io/discord/592446624882491402.svg?color=brightgreen)](https://discord.gg/ZZ7BGWh)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
-[![Github Stars](https://img.shields.io/github/stars/notadamking/RLTrader.svg)](https://github.com/notadamking/RLTrader)
+[![Github Release](https://img.shields.io/github/release/notadamking/RLTrader.svg)](https://github.com/notadamking/RLTrader)
 
 In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
 
@@ -124,6 +125,14 @@ If you want to run existing tests, then just use:
 ./dev-with-docker
 ```
 
+# Windows 10 installation, no CUDA installation needed
+
+conda create --name rltrader python=3.6.8 pip git
+conda activate rltrader
+conda install tensorflow-gpu
+git clone https://github.com/notadamking/RLTrader
+pip install -r RLTrader/requirements.txt
+
 # Optimizing, Training, and Testing
 
 While you could just let the agent train and run with the default PPO2 hyper-parameters, your agent would likely not be very profitable. The `stable-baselines` library provides a great set of default parameters that work for most problem domains, but we need to better.
@@ -139,6 +148,14 @@ This can take a while (hours to days depending on your hardware setup), but over
 From there, agents will be trained using the best set of hyper-parameters, and later tested on completely new data to verify the generalization of the algorithm.
 
 Feel free to ask any questions in the Discord!
+
+# Google Colab
+Enter and run the following snippet in the first cell to load RLTrader into a Google Colab environment. Don't forget to set hardware acceleration to GPU to speed up training! 
+
+```
+!git init && git remote add origin https://github.com/notadamking/RLTrader.git && git pull origin master
+!pip install -r requirements.txt
+```
 
 # Common troubleshooting
 

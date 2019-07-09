@@ -6,18 +6,16 @@ from os import path
 from typing import Dict
 
 from stable_baselines.common.base_class import BaseRLModel
-from stable_baselines.common.policies import BasePolicy, MlpPolicy, MlpLstmPolicy, FeedForwardPolicy
+from stable_baselines.common.policies import BasePolicy, MlpLnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
-
-import tensorflow as tf
-
 
 
 def make_env(data_provider: BaseDataProvider, rank: int = 0, seed: int = 0):
@@ -25,28 +23,27 @@ def make_env(data_provider: BaseDataProvider, rank: int = 0, seed: int = 0):
         env = TradingEnv(data_provider)
         env.seed(seed + rank)
         return env
+
     set_global_seeds(seed)
+
     return _init
-
-
-class BiggerPolicy(FeedForwardPolicy):
-    def __init__(self, *args, **kwargs):
-        super(BiggerPolicy, self).__init__(*args, **kwargs,
-                                           act_fun=tf.nn.relu,
-                                           net_arch=[dict(pi=[256, 256, 128],
-                                                          vf=[256, 256, 128])],
-                                           feature_extraction="mlp")
 
 
 class RLTrader:
     data_provider = None
     study_name = None
 
-    def __init__(self, modelClass: BaseRLModel = PPO2, policyClass: BasePolicy = BiggerPolicy, exchange_args: Dict = {}, **kwargs):
+    def __init__(self,
+                 model: BaseRLModel = PPO2,
+                 policy: BasePolicy = MlpLnLstmPolicy,
+                 reward_strategy: BaseRewardStrategy = IncrementalProfit,
+                 exchange_args: Dict = {},
+                 **kwargs):
         self.logger = kwargs.get('logger', init_logger(__name__, show_debug=kwargs.get('show_debug', True)))
 
-        self.Model = modelClass
-        self.Policy = policyClass
+        self.Model = model
+        self.Policy = policy
+        self.Reward_Strategy = reward_strategy
         self.exchange_args = exchange_args
         self.tensorboard_path = kwargs.get('tensorboard_path', None)
         self.input_data_path = kwargs.get('input_data_path', 'data/input/coinbase-1h-btc-usd.csv')
@@ -86,9 +83,11 @@ class RLTrader:
         try:
             train_env = DummyVecEnv([lambda: TradingEnv(self.data_provider)])
             model = self.Model(self.Policy, train_env, nminibatches=1)
-            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}'
+            strategy = self.Reward_Strategy()
+
+            self.study_name = f'{model.__class__.__name__}__{model.act_model.__class__.__name__}__{strategy.__class__.__name__}'
         except:
-            self.study_name = f'UnknownModel__UnknownPolicy'
+            self.study_name = f'UnknownModel__UnknownPolicy__UnknownStrategy'
 
         self.optuna_study = optuna.create_study(
             study_name=self.study_name, storage=self.params_db_path, load_if_exists=True)
@@ -115,15 +114,15 @@ class RLTrader:
 
     def optimize_agent_params(self, trial):
         if self.Model != PPO2:
-            return {'learning_rate': trial.suggest_loguniform('learning_rate', 5e-6, 0.8)}
+            return {'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.)}
 
         return {
             'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
             'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
-            'learning_rate': trial.suggest_loguniform('learning_rate', 5e-6, 0.8),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
             'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
-            'cliprange': trial.suggest_uniform('cliprange', 0.01, 0.4),
-            'noptepochs': int(trial.suggest_loguniform('noptepochs', 5, 60)),
+            'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.4),
+            'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
             'lam': trial.suggest_uniform('lam', 0.8, 1.)
         }
 
@@ -152,12 +151,19 @@ class RLTrader:
             rewards = []
             n_episodes, reward_sum = 0, 0.0
 
+            trades = train_env.get_attr('trades')
+
+            if len(trades[0]) < 1:
+                self.logger.info(f'Pruning trial for not making any trades: {eval_idx}')
+                raise optuna.structs.TrialPruned()
+
             state = None
             obs = validation_env.reset()
             while n_episodes < n_tests_per_eval:
                 action, state = model.predict(obs, state=state)
-                obs, reward, done, _ = validation_env.step(action)
-                reward_sum += reward
+                obs, reward, done, _ = validation_env.step([action])
+
+                reward_sum += reward[0]
 
                 if all(done):
                     rewards.append(reward_sum)
@@ -173,10 +179,9 @@ class RLTrader:
 
         return -1 * last_reward
 
-    def optimize(self, n_trials: int = 100, n_parallel_jobs: int = 1, *optimize_params):
+    def optimize(self, n_trials: int = 20, *optimize_params):
         try:
-            self.optuna_study.optimize(
-                self.optimize_params, n_trials=n_trials, n_jobs=n_parallel_jobs, *optimize_params)
+            self.optuna_study.optimize(self.optimize_params, n_trials=n_trials, n_jobs=1, *optimize_params)
         except KeyboardInterrupt:
             pass
 
@@ -190,7 +195,7 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 100, save_every: int = 10, test_trained_model: bool = False, render_trained_model: bool = False):
+    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
@@ -215,8 +220,8 @@ class RLTrader:
                 model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
                 model.save(model_path)
 
-            if test_trained_model:
-                self.test(model_epoch, should_render=render_trained_model)
+                if test_trained_model:
+                    self.test(model_epoch, should_render=render_trained_model)
 
         self.logger.info(f'Trained {n_epochs} models')
 
@@ -225,23 +230,30 @@ class RLTrader:
 
         del train_provider
 
-        test_env = SubprocVecEnv([make_env(test_provider, i) for i in range(self.n_envs)])
+        init_envs = DummyVecEnv([make_env(test_provider) for _ in range(self.n_envs)])
 
         model_path = path.join('data', 'agents', f'{self.study_name}__{model_epoch}.pkl')
-        model = self.Model.load(model_path, env=test_env)
+        model = self.Model.load(model_path, env=init_envs)
+
+        test_env = DummyVecEnv([make_env(test_provider) for _ in range(1)])
 
         self.logger.info(f'Testing model ({self.study_name}__{model_epoch})')
 
+        zero_completed_obs = np.zeros((self.n_envs,) + init_envs.observation_space.shape)
+        zero_completed_obs[0, :] = test_env.reset()
+
         state = None
-        obs, rewards = test_env.reset(), []
+        rewards = []
 
         for _ in range(len(test_provider.data_frame)):
-            action, state = model.predict(obs, state=state)
-            obs, reward, _, __ = test_env.step(action)
+            action, state = model.predict(zero_completed_obs, state=state)
+            obs, reward, _, __ = test_env.step([action[0]])
+
+            zero_completed_obs[0, :] = obs
 
             rewards.append(reward)
 
-            if should_render and self.n_envs == 1:
+            if should_render:
                 test_env.render(mode='human')
 
         self.logger.info(

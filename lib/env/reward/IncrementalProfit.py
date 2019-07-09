@@ -6,15 +6,18 @@ from lib.env.reward.BaseRewardStrategy import BaseRewardStrategy
 
 
 class IncrementalProfit(BaseRewardStrategy):
-    @staticmethod
-    def get_reward(observations: pd.DataFrame,
+    def __init__(self):
+        pass
+
+    def get_reward(self,
+                   observations: pd.DataFrame,
                    account_history: pd.DataFrame,
                    net_worths: List[float],
                    last_bought: int,
                    last_sold: int,
                    current_price: float):
-        prev_balance = account_history['balance'].values[-2]
         curr_balance = account_history['balance'].values[-1]
+        prev_balance = account_history['balance'].values[-2] if len(account_history['balance']) > 1 else curr_balance
         reward = 0
 
         if curr_balance > prev_balance:

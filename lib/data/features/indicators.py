@@ -1,78 +1,56 @@
 import ta
+import pandas as pd
 
 
-def add_indicators(df):
-    df['RSI'] = ta.rsi(df["Close"])
-    df['MFI'] = ta.money_flow_index(
-        df["High"], df["Low"], df["Close"], df["Volume BTC"])
-    df['TSI'] = ta.tsi(df["Close"])
-    df['UO'] = ta.uo(df["High"], df["Low"], df["Close"])
-    df['AO'] = ta.ao(df["High"], df["Low"])
+diff = lambda x, y: x - y
+abs_diff = lambda x, y: abs(x - y)
 
-    df['MACD_diff'] = ta.macd_diff(df["Close"])
-    df['Vortex_pos'] = ta.vortex_indicator_pos(
-        df["High"], df["Low"], df["Close"])
-    df['Vortex_neg'] = ta.vortex_indicator_neg(
-        df["High"], df["Low"], df["Close"])
-    df['Vortex_diff'] = abs(
-        df['Vortex_pos'] -
-        df['Vortex_neg'])
-    df['Trix'] = ta.trix(df["Close"])
-    df['Mass_index'] = ta.mass_index(df["High"], df["Low"])
-    df['CCI'] = ta.cci(df["High"], df["Low"], df["Close"])
-    df['DPO'] = ta.dpo(df["Close"])
-    df['KST'] = ta.kst(df["Close"])
-    df['KST_sig'] = ta.kst_sig(df["Close"])
-    df['KST_diff'] = (
-        df['KST'] -
-        df['KST_sig'])
-    df['Aroon_up'] = ta.aroon_up(df["Close"])
-    df['Aroon_down'] = ta.aroon_down(df["Close"])
-    df['Aroon_ind'] = (
-        df['Aroon_up'] -
-        df['Aroon_down']
-    )
 
-    df['BBH'] = ta.bollinger_hband(df["Close"])
-    df['BBL'] = ta.bollinger_lband(df["Close"])
-    df['BBM'] = ta.bollinger_mavg(df["Close"])
-    df['BBHI'] = ta.bollinger_hband_indicator(
-        df["Close"])
-    df['BBLI'] = ta.bollinger_lband_indicator(
-        df["Close"])
-    df['KCHI'] = ta.keltner_channel_hband_indicator(df["High"],
-                                                    df["Low"],
-                                                    df["Close"])
-    df['KCLI'] = ta.keltner_channel_lband_indicator(df["High"],
-                                                    df["Low"],
-                                                    df["Close"])
-    df['DCHI'] = ta.donchian_channel_hband_indicator(df["Close"])
-    df['DCLI'] = ta.donchian_channel_lband_indicator(df["Close"])
+indicators = [
+    ('RSI', ta.rsi, ['Close']),
+    ('MFI', ta.money_flow_index, ['High', 'Low', 'Close', 'Volume BTC']),
+    ('TSI', ta.tsi, ['Close']),
+    ('UO', ta.uo, ['High', 'Low', 'Close']),
+    ('AO', ta.ao, ['High', 'Close']),
+    ('MACDDI', ta.macd_diff, ['Close']),
+    ('VIP', ta.vortex_indicator_pos, ['High', 'Low', 'Close']),
+    ('VIN', ta.vortex_indicator_neg, ['High', 'Low', 'Close']),
+    ('VIDIF', abs_diff, ['VIP', 'VIN']),
+    ('TRIX', ta.trix, ['Close']),
+    ('MI', ta.mass_index, ['High', 'Low']),
+    ('CCI', ta.cci, ['High', 'Low', 'Close']),
+    ('DPO', ta.dpo, ['Close']),
+    ('KST', ta.kst, ['Close']),
+    ('KSTS', ta.kst_sig, ['Close']),
+    ('KSTDI', diff, ['KST', 'KSTS']),
+    ('ARU', ta.aroon_up, ['Close']),
+    ('ARD', ta.aroon_down, ['Close']),
+    ('ARI', diff, ['ARU', 'ARD']),
+    ('BBH', ta.bollinger_hband, ['Close']),
+    ('BBL', ta.bollinger_lband, ['Close']),
+    ('BBM', ta.bollinger_mavg, ['Close']),
+    ('BBHI', ta.bollinger_hband_indicator, ['Close']),
+    ('BBLI', ta.bollinger_lband_indicator, ['Close']),
+    ('KCHI', ta.keltner_channel_hband_indicator, ['High', 'Low', 'Close']),
+    ('KCLI', ta.keltner_channel_lband_indicator, ['High', 'Low', 'Close']),
+    ('DCHI', ta.donchian_channel_hband_indicator, ['Close']),
+    ('DCLI', ta.donchian_channel_lband_indicator, ['Close']),
+    ('ADI', ta.acc_dist_index, ['High', 'Low', 'Close', 'Volume BTC']),
+    ('OBV', ta.on_balance_volume, ['Close', 'Volume BTC']),
+    ('CMF', ta.chaikin_money_flow, ['High', 'Low', 'Close', 'Volume BTC']),
+    ('FI', ta.force_index, ['Close', 'Volume BTC']),
+    ('EM', ta.ease_of_movement, ['High', 'Low', 'Close', 'Volume BTC']),
+    ('VPT', ta.volume_price_trend, ['Close', 'Volume BTC']),
+    ('NVI', ta.negative_volume_index, ['Close', 'Volume BTC']),
+    ('DR', ta.daily_return, ['Close']),
+    ('DLR', ta.daily_log_return, ['Close'])
+]
 
-    df['ADI'] = ta.acc_dist_index(df["High"],
-                                  df["Low"],
-                                  df["Close"],
-                                  df["Volume BTC"])
-    df['OBV'] = ta.on_balance_volume(df["Close"],
-                                     df["Volume BTC"])
-    df['CMF'] = ta.chaikin_money_flow(df["High"],
-                                      df["Low"],
-                                      df["Close"],
-                                      df["Volume BTC"])
-    df['FI'] = ta.force_index(df["Close"],
-                              df["Volume BTC"])
-    df['EM'] = ta.ease_of_movement(df["High"],
-                                   df["Low"],
-                                   df["Close"],
-                                   df["Volume BTC"])
-    df['VPT'] = ta.volume_price_trend(df["Close"],
-                                      df["Volume BTC"])
-    df['NVI'] = ta.negative_volume_index(df["Close"],
-                                         df["Volume BTC"])
 
-    df['DR'] = ta.daily_return(df["Close"])
-    df['DLR'] = ta.daily_log_return(df["Close"])
-
+def add_indicators(df) -> pd.DataFrame:
+    for name, f, arg_names in indicators:
+        wrapper = lambda func, args: func(*args)
+        args = [df[arg_name] for arg_name in arg_names]
+        df[name] = wrapper(f, args)
     df.fillna(method='bfill', inplace=True)
-
     return df
