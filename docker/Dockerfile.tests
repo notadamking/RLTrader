@@ -1,6 +1,6 @@
 FROM python:3.6.8-jessie
 
-ADD ./requirements.txt
+ADD ./requirements.txt /code/requirements.txt
 
 WORKDIR /code
 
