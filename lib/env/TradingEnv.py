@@ -6,8 +6,6 @@ from gym import spaces
 from enum import Enum
 from typing import List, Dict
 
-from datetime import datetime
-
 from lib.env.render import TradingChart
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit
 from lib.data.providers import BaseDataProvider
