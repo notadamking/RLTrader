@@ -5,16 +5,18 @@ from multiprocessing import Process
 from lib.cli.RLTraderCLI import RLTraderCLI
 from lib.util.logger import init_logger
 from lib.cli.functions import download_data_async
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealisedProfit
 
 np.warnings.filterwarnings('ignore')
 trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
-
+rewards = {"IncrementalProfit": IncrementalProfit, "WeightedUnrealisedProfit": WeightedUnrealisedProfit}
+rewardStrategy = rewards[args.reward_strategy]()
 
 def run_optimize(args, logger):
     from lib.RLTrader import RLTrader
 
-    trader = RLTrader(**vars(args), logger=logger)
+    trader = RLTrader(**vars(args), logger=logger, reward_strategy=rewardStrategy)
     trader.optimize(args.trials)
 
 
@@ -36,7 +38,7 @@ if __name__ == '__main__':
 
     from lib.RLTrader import RLTrader
 
-    trader = RLTrader(**vars(args), logger=logger)
+    trader = RLTrader(**vars(args), logger=logger, reward_strategy=rewardStrategy)
 
     if args.command == 'train':
         trader.train(n_epochs=args.epochs)
