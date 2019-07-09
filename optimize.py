@@ -1,31 +1,26 @@
+import os
 import numpy as np
 
-import multiprocessing
-from lib.RLTrader import RLTrader
+from multiprocessing import Pool
 
 np.warnings.filterwarnings('ignore')
 
 
 def optimize_code(params):
+    from lib.RLTrader import RLTrader
+
     trader = RLTrader(**params)
     trader.optimize()
 
 
 if __name__ == '__main__':
-    n_process = multiprocessing.cpu_count()
-    params = {'n_cpu': n_process}
+    n_processes = os.cpu_count()
+    params = {'n_envs': n_processes}
 
-    # processes = []
-    # for i in range(n_process):
-    #     processes.append(multiprocessing.Process(target=optimize_code, args=(params,)))
+    opt_pool = Pool(processes=n_processes)
+    opt_pool.map(optimize_code, [params for _ in range(n_processes)])
 
-    # for p in processes:
-    #     p.start()
-
-    # for p in processes:
-    #     p.join()
+    from lib.RLTrader import RLTrader
 
     trader = RLTrader(**params)
-    # trader.train(test_trained_model=True, render_trained_model=True)
-
-    trader.test(model_epoch=10)
+    trader.train(test_trained_model=True, render_trained_model=True)
