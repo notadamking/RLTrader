@@ -6,6 +6,8 @@ from gym import spaces
 from enum import Enum
 from typing import List, Dict
 
+from datetime import datetime
+
 from lib.env.render import TradingChart
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit
 from lib.data.providers import BaseDataProvider
@@ -104,7 +106,6 @@ class TradingEnv(gym.Env):
 
         current_net_worth = round(self.balance + self.asset_held * current_price, self.base_precision)
         self.net_worths.append(current_net_worth)
-
         self.account_history = self.account_history.append({
             'balance': self.balance,
             'asset_bought': asset_bought,
@@ -145,6 +146,7 @@ class TradingEnv(gym.Env):
 
     def _next_observation(self):
         self.current_ohlcv = self.data_provider.next_ohlcv()
+        self.timestamps.append(pd.to_datetime(self.current_ohlcv.Date.item(), unit='s'))
         self.observations = self.observations.append(self.current_ohlcv, ignore_index=True)
 
         if self.stationarize_obs:
@@ -177,6 +179,7 @@ class TradingEnv(gym.Env):
 
         self.balance = self.initial_balance
         self.net_worths = [self.initial_balance]
+        self.timestamps = []
         self.asset_held = 0
         self.current_step = 0
         self.last_bought = 0
@@ -202,8 +205,7 @@ class TradingEnv(gym.Env):
         obs = self._next_observation()
         reward = self._reward()
         done = self._done()
-
-        return obs, reward, done, {}
+        return obs, reward, done, {'networths': self.net_worths, 'timestamps': self.timestamps}
 
     def render(self, mode='human'):
         if mode == 'system':

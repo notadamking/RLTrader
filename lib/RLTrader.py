@@ -1,6 +1,8 @@
 import os
 import optuna
 import numpy as np
+import pandas as pd
+import quantstats as qs
 
 from os import path
 from typing import Dict
@@ -225,7 +227,7 @@ class RLTrader:
 
         self.logger.info(f'Trained {n_epochs} models')
 
-    def test(self, model_epoch: int = 0, should_render: bool = True):
+    def test(self, model_epoch: int = 0, should_render: bool = True, render_tearsheet: bool = True):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del train_provider
@@ -247,7 +249,7 @@ class RLTrader:
 
         for _ in range(len(test_provider.data_frame)):
             action, state = model.predict(zero_completed_obs, state=state)
-            obs, reward, _, __ = test_env.step([action[0]])
+            obs, reward, done, info = test_env.step([action[0]])
 
             zero_completed_obs[0, :] = obs
 
@@ -255,6 +257,15 @@ class RLTrader:
 
             if should_render:
                 test_env.render(mode='human')
+
+            if done and render_tearsheet:
+                net_worths = pd.DataFrame(
+                    {'Date': info[0]['timestamps'],
+                     'Balance': info[0]['networths'],
+                    })
+                net_worths.set_index('Date', drop=True, inplace=True)
+                returns = net_worths.pct_change()[1:]
+                qs.plots.snapshot(returns.Balance, title='RL Trader Performance')
 
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
