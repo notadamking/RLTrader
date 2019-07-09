@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+CWD=$(realpath "${SCRIPT_DIR}")
+
+if [[ -z $1 ]]; then
+    echo "Should have 1 argument: cpu or gpu"
+    exit
+fi
+
+TYPE=$1
+shift;
+
+if [[ -n $2 ]]; then
+    docker build \
+        --tag 'trader-rl-postgres' \
+        --build-arg ID=$(id -u) \
+        --build-arg GI=$(id -g) \
+        -f "$CWD/docker/Dockerfile.backend" "$CWD"
+
+    mkdir -p "$CWD/data/postgres"
+    docker run \
+        --detach \
+        --publish 5432:5432 \
+        --tty \
+        --user "$(id -u):$(id -g)" \
+        --volume "$CWD/data/postgres":"/var/lib/postgresql/data/trader-data" \
+      trader-rl-postgres-dev
+    shift
+fi
+
+if [[ $TYPE == 'gpu' ]]; then
+    GPU=1
+else
+    GPU=0
+fi
+
+MEM=$(cat /proc/meminfo | grep 'MemTotal:' |  awk '{ print $2 }')
+CPUS=$(cat /proc/cpuinfo | grep -P 'processor.+[0-7]+' | wc -l)
+
+MEM_LIMIT=$((MEM/4*3))
+CPU_LIMIT=$((CPUS/4*3))
+
+if [ $CPU_LIMIT == 0 ];then
+    CPU_LIMIT=1
+fi
+
+if [ $GPU == 0 ]; then
+    N="trader-rl-cpu-dev"
+    docker build --tag $N -f "$CWD/docker/Dockerfile.cpu" "$CWD"
+else
+    N="trader-rl-gpu-dev"
+    docker build --tag $N -f "$CWD/docker/Dockerfile.gpu" "$CWD"
+fi
+
+docker rm -fv rl_trader_dev || true
+docker run \
+    --name 'rl_trader_dev' \
+    --user $(id -u):$(id -g) \
+    --entrypoint 'bash' \
+    --interactive \
+    --memory "${MEM_LIMIT}b" \
+    --cpus "${CPU_LIMIT}" \
+    --tty \
+    --volume "${CWD}":/code \
+    "$N"
