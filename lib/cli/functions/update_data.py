@@ -39,4 +39,4 @@ def download_data_async():
 
 
 if __name__ == '__main__':
-    download_async()
+    download_data_async()

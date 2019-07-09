@@ -154,7 +154,7 @@ class RLTrader:
             trades = train_env.get_attr('trades')
 
             if len(trades[0]) < 1:
-                self.logger.info('Pruning trial for not making any trades: ', eval_idx)
+                self.logger.info(f'Pruning trial for not making any trades: {eval_idx}')
                 raise optuna.structs.TrialPruned()
 
             state = None
