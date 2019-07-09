@@ -10,11 +10,16 @@ class BaseRewardStrategy(object, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def reset_reward(self):
+        pass
+
+    @abstractmethod
     def get_reward(self,
                    observations: pd.DataFrame,
                    account_history: pd.DataFrame,
                    net_worths: List[float],
                    last_bought: int,
+                   last_held: int,
                    last_sold: int,
                    current_price: float) -> float:
         raise NotImplementedError()

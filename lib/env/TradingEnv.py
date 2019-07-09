@@ -7,7 +7,7 @@ from enum import Enum
 from typing import List, Dict
 
 from lib.env.render import TradingChart
-from lib.env.reward import BaseRewardStrategy, IncrementalProfit
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealisedProfit
 from lib.data.providers import BaseDataProvider
 from lib.data.features.transform import max_min_normalize, mean_normalize, log_and_difference, difference
 from lib.util.logger import init_logger
@@ -26,7 +26,7 @@ class TradingEnv(gym.Env):
 
     def __init__(self,
                  data_provider: BaseDataProvider,
-                 reward_strategy: BaseRewardStrategy = IncrementalProfit,
+                 reward_strategy: BaseRewardStrategy = WeightedUnrealisedProfit,
                  initial_balance: int = 10000,
                  commission: float = 0.0025,
                  **kwargs):
@@ -91,6 +91,7 @@ class TradingEnv(gym.Env):
             self.last_sold = self.current_step
             self.asset_held -= asset_sold
             self.balance += revenue_from_sold
+            self.reward_strategy.reset_reward()
 
             self.trades.append({'step': self.current_step, 'amount': asset_sold,
                                 'total': revenue_from_sold, 'type': 'sell'})
@@ -124,6 +125,7 @@ class TradingEnv(gym.Env):
                                                  net_worths=self.net_worths,
                                                  account_history=self.account_history,
                                                  last_bought=self.last_bought,
+                                                 last_held=self.asset_held,
                                                  last_sold=self.last_sold,
                                                  current_price=self._current_price())
 
@@ -181,6 +183,7 @@ class TradingEnv(gym.Env):
         self.current_step = 0
         self.last_bought = 0
         self.last_sold = 0
+        self.reward_strategy.reset_reward()
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,
