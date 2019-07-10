@@ -13,7 +13,7 @@ trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
 
 rewards = {"incremental-profit": IncrementalProfit, "weighted-unrealized-profit": WeightedUnrealizedProfit}
-reward_strategy = rewards[args.reward_strategy]
+reward_strategy = rewards[args.reward_strat]
 
 
 def run_optimize(args, logger):

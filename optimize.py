@@ -23,4 +23,4 @@ if __name__ == '__main__':
     from lib.RLTrader import RLTrader
 
     trader = RLTrader(**params)
-    trader.train(test_trained_model=True, render_trained_model=True)
+    trader.train(test_trained_model=True, render_test_env=True, render_report=True)
