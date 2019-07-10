@@ -7,7 +7,7 @@ from typing import List, Callable
 from lib.env.reward.BaseRewardStrategy import BaseRewardStrategy
 
 
-class WeightedUnrealisedProfit(BaseRewardStrategy):
+class WeightedUnrealizedProfit(BaseRewardStrategy):
     def __init__(self, **kwargs):
         self.decay_rate = kwargs.get('decay_rate', 1e-2)
         self.decay_denominator = np.exp(-1 * self.decay_rate)

@@ -7,7 +7,7 @@ from enum import Enum
 from typing import List, Dict
 
 from lib.env.render import TradingChart
-from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealisedProfit
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.env.trade import BaseTradeStrategy, SimulatedTradeStrategy
 from lib.data.providers import BaseDataProvider
 from lib.data.features.transform import max_min_normalize, mean_normalize, log_and_difference, difference
