@@ -5,14 +5,14 @@ from multiprocessing import Process
 from lib.cli.RLTraderCLI import RLTraderCLI
 from lib.util.logger import init_logger
 from lib.cli.functions import download_data_async
-from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealisedProfit
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 
 np.warnings.filterwarnings('ignore')
 
 trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
 
-rewards = {"incremental-profit": IncrementalProfit, "weighted-unrealised-profit": WeightedUnrealisedProfit}
+rewards = {"incremental-profit": IncrementalProfit, "weighted-unrealised-profit": WeightedUnrealizedProfit}
 reward_strategy = rewards[args.reward_strategy]
 
 
