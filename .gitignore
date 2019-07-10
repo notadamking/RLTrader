@@ -6,4 +6,5 @@ data/tensorboard/*
 data/agents/*
 data/postgres/*
 data/log/*
+data/reports/*
 *.pkl
