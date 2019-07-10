@@ -134,8 +134,8 @@ class RLTrader:
 
         del test_provider
 
-        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(1)])
-        validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(1)])
+        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
+        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider)])
 
         model_params = self.optimize_agent_params(trial)
         model = self.Model(self.Policy,
