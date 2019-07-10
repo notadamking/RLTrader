@@ -7,3 +7,4 @@ agents
 data/tensorboard
 data/agents
 data/postgres
+data/reports

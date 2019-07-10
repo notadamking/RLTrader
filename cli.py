@@ -15,7 +15,7 @@ def run_optimize(args, logger):
     from lib.RLTrader import RLTrader
 
     trader = RLTrader(**vars(args), logger=logger)
-    trader.optimize(args.trials)
+    trader.optimize(n_trials=args.trials, n_prune_evals_per_trial=args.prune_evals, n_tests_per_eval=args.eval_tests)
 
 
 if __name__ == '__main__':
@@ -39,8 +39,16 @@ if __name__ == '__main__':
     trader = RLTrader(**vars(args), logger=logger)
 
     if args.command == 'train':
-        trader.train(n_epochs=args.epochs)
+        trader.train(n_epochs=args.epochs,
+                     save_every=args.save_every,
+                     test_trained_model=args.test_trained,
+                     render_test_env=args.render_test,
+                     render_report=args.render_report,
+                     save_report=args.save_report)
     elif args.command == 'test':
-        trader.test(model_epoch=args.model_epoch, should_render=args.no_render)
+        trader.test(model_epoch=args.model_epoch,
+                    render_env=args.render_env,
+                    render_report=args.render_report,
+                    save_report=args.save_report)
     elif args.command == 'update-static-data':
         download_data_async()
