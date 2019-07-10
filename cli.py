@@ -20,7 +20,7 @@ def run_optimize(args, logger):
     from lib.RLTrader import RLTrader
 
     trader = RLTrader(**vars(args), logger=logger, reward_strategy=reward_strategy)
-    trader.optimize(n_trials=args.trials, n_prune_evals_per_trial=args.prune_evals, n_tests_per_eval=args.eval_tests)
+    trader.optimize(n_trials=args.trials)
 
 
 if __name__ == '__main__':

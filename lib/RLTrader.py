@@ -185,9 +185,9 @@ class RLTrader:
 
         return -1 * last_reward
 
-    def optimize(self, n_trials: int = 20, **optimize_params):
+    def optimize(self, n_trials: int = 20):
         try:
-            self.optuna_study.optimize(self.optimize_params, n_trials=n_trials, n_jobs=1, **optimize_params)
+            self.optuna_study.optimize(self.optimize_params, n_trials=n_trials, n_jobs=1)
         except KeyboardInterrupt:
             pass
 
@@ -278,7 +278,7 @@ class RLTrader:
             if done:
                 net_worths = pd.DataFrame({
                     'Date': info[0]['timestamps'],
-                    'Balance': info[0]['networths'],
+                    'Balance': info[0]['net_worths'],
                 })
 
                 net_worths.set_index('Date', drop=True, inplace=True)

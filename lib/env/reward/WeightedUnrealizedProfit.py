@@ -36,6 +36,6 @@ class WeightedUnrealizedProfit(BaseRewardStrategy):
         if account_history['asset_sold'].values[-1] > 0:
             reward = self.calc_reward(account_history['sale_revenue'].values[-1])
         else:
-            reward = self.calc_reward(account_history['asset_held'].values[-1] * current_price)
+            reward = self.calc_reward(account_history['asset_held'].values[-1] * current_price())
 
         return reward

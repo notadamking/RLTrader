@@ -94,6 +94,7 @@ class TradingEnv(gym.Env):
 
     def _take_action(self, action: int):
         amount_asset_to_buy, amount_asset_to_sell = self._get_trade(action)
+
         asset_bought, asset_sold, purchase_cost, sale_revenue = self.trade_strategy.trade(buy_amount=amount_asset_to_buy,
                                                                                           sell_amount=amount_asset_to_sell,
                                                                                           balance=self.balance,
@@ -104,15 +105,20 @@ class TradingEnv(gym.Env):
             self.asset_held += asset_bought
             self.balance -= purchase_cost
 
-            self.trades.append({'step': self.current_step, 'amount': asset_bought,
-                                'total': purchase_cost, 'type': 'buy'})
+            self.trades.append({'step': self.current_step,
+                                'amount': asset_bought,
+                                'total': purchase_cost,
+                                'type': 'buy'})
         elif asset_sold:
             self.asset_held -= asset_sold
             self.balance += sale_revenue
+
             self.reward_strategy.reset_reward()
 
-            self.trades.append({'step': self.current_step, 'amount': asset_sold,
-                                'total': sale_revenue, 'type': 'sell'})
+            self.trades.append({'step': self.current_step,
+                                'amount': asset_sold,
+                                'total': sale_revenue,
+                                'type': 'sell'})
 
         current_net_worth = round(self.balance + self.asset_held * self._current_price(), self.base_precision)
         self.net_worths.append(current_net_worth)
@@ -132,7 +138,7 @@ class TradingEnv(gym.Env):
 
     def _reward(self):
         reward = self.reward_strategy.get_reward(current_step=self.current_step,
-                                                 current_price=self._current_price(),
+                                                 current_price=self._current_price,
                                                  observations=self.observations,
                                                  account_history=self.account_history,
                                                  net_worths=self.net_worths)
@@ -214,7 +220,8 @@ class TradingEnv(gym.Env):
         obs = self._next_observation()
         reward = self._reward()
         done = self._done()
-        return obs, reward, done, {'networths': self.net_worths, 'timestamps': self.timestamps}
+
+        return obs, reward, done, {'net_worths': self.net_worths, 'timestamps': self.timestamps}
 
     def render(self, mode='human'):
         if mode == 'system':

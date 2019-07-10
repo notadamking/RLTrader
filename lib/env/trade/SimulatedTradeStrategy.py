@@ -30,7 +30,7 @@ class SimulatedTradeStrategy(BaseTradeStrategy):
         commission = self.commissionPercent / 100
         slippage = np.random.uniform(0, self.maxSlippagePercent) / 100
 
-        asset_bought, asset_sold, purchase_cost, sale_revenue = 0, 0, 0, 0
+        asset_bought, asset_sold, purchase_cost, sale_revenue = buy_amount, sell_amount, 0, 0
 
         if buy_amount > 0 and balance >= self.min_cost_limit:
             price_adjustment = (1 + commission) * (1 + slippage)
