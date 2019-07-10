@@ -7,7 +7,7 @@ from enum import Enum
 from typing import List, Dict
 
 from lib.env.render import TradingChart
-from lib.env.reward import BaseRewardStrategy, IncrementalProfit
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.env.trade import BaseTradeStrategy, SimulatedTradeStrategy
 from lib.data.providers import BaseDataProvider
 from lib.data.features.transform import max_min_normalize, mean_normalize, log_and_difference, difference
@@ -109,6 +109,7 @@ class TradingEnv(gym.Env):
         elif asset_sold:
             self.asset_held -= asset_sold
             self.balance += sale_revenue
+            self.reward_strategy.reset_reward()
 
             self.trades.append({'step': self.current_step, 'amount': asset_sold,
                                 'total': sale_revenue, 'type': 'sell'})
@@ -190,6 +191,8 @@ class TradingEnv(gym.Env):
         self.timestamps = []
         self.asset_held = 0
         self.current_step = 0
+
+        self.reward_strategy.reset_reward()
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,

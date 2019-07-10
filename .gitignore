@@ -8,3 +8,4 @@ data/postgres/*
 data/log/*
 data/reports/*
 *.pkl
+venv/*

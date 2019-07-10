@@ -10,6 +10,10 @@ class BaseRewardStrategy(object, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def reset_reward(self):
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_reward(self,
                    current_step: int,
                    current_price: Callable[[str], float],

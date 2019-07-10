@@ -14,7 +14,7 @@ from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
-from lib.env.reward import BaseRewardStrategy, IncrementalProfit
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
