@@ -48,8 +48,8 @@ indicators = [
 
 
 def add_indicators(df) -> pd.DataFrame:
+    wrapper = lambda func, args: func(*args)
     for name, f, arg_names in indicators:
-        wrapper = lambda func, args: func(*args)
         args = [df[arg_name] for arg_name in arg_names]
         df[name] = wrapper(f, args)
     df.fillna(method='bfill', inplace=True)
