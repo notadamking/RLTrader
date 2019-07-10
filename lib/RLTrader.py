@@ -197,7 +197,7 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = False, render_trained_model: bool = False, render_trained_tearsheet: bool = False):
+    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = True, render_trained_model: bool = False, save_results: bool = True):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
@@ -223,11 +223,11 @@ class RLTrader:
                 model.save(model_path)
 
                 if test_trained_model:
-                    self.test(model_epoch, should_render=render_trained_model, render_tearsheet=render_trained_tearsheet)
+                    self.test(model_epoch, should_render=render_trained_model, render_tearsheet=False, save_tearsheet=save_results)
 
         self.logger.info(f'Trained {n_epochs} models')
 
-    def test(self, model_epoch: int = 0, should_render: bool = True, render_tearsheet: bool = True):
+    def test(self, model_epoch: int = 0, should_render: bool = True, render_tearsheet: bool = True, save_tearsheet: bool = False):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del train_provider
@@ -258,14 +258,17 @@ class RLTrader:
             if should_render:
                 test_env.render(mode='human')
 
-            if done and render_tearsheet:
+            if done:
                 net_worths = pd.DataFrame(
                     {'Date': info[0]['timestamps'],
                      'Balance': info[0]['networths'],
                     })
                 net_worths.set_index('Date', drop=True, inplace=True)
                 returns = net_worths.pct_change()[1:]
-                qs.plots.snapshot(returns.Balance, title='RL Trader Performance')
-
+                if(render_tearsheet):
+                    qs.plots.snapshot(returns.Balance, title='RL Trader Performance')
+                if(save_tearsheet):
+                    reports_path = path.join('data', 'reports', f'{self.study_name}__{model_epoch}.html')
+                    qs.reports.html(returns.Balance, file=reports_path)
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
