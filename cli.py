@@ -11,12 +11,12 @@ np.warnings.filterwarnings('ignore')
 trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
 rewards = {"IncrementalProfit": IncrementalProfit, "WeightedUnrealisedProfit": WeightedUnrealisedProfit}
-rewardStrategy = rewards[args.reward_strategy]()
+reward_strategy = rewards[args.reward_strategy]
 
 def run_optimize(args, logger):
     from lib.RLTrader import RLTrader
 
-    trader = RLTrader(**vars(args), logger=logger, reward_strategy=rewardStrategy)
+    trader = RLTrader(**vars(args), logger=logger, reward_strategy=reward_strategy)
     trader.optimize(args.trials)
 
 
