@@ -206,8 +206,8 @@ class RLTrader:
               save_every: int = 1,
               test_trained_model: bool = True,
               render_test_env: bool = False,
-              render_report: bool = True,
-              save_report: bool = False):
+              render_report: bool = False,
+              save_report: bool = True):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
