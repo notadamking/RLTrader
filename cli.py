@@ -12,7 +12,7 @@ np.warnings.filterwarnings('ignore')
 trader_cli = RLTraderCLI()
 args = trader_cli.get_args()
 
-rewards = {"incremental-profit": IncrementalProfit, "weighted-unrealised-profit": WeightedUnrealizedProfit}
+rewards = {"incremental-profit": IncrementalProfit, "weighted-unrealized-profit": WeightedUnrealizedProfit}
 reward_strategy = rewards[args.reward_strategy]
 
 
