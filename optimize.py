@@ -1,4 +1,4 @@
-import os
+import multiprocessing
 import numpy as np
 
 from multiprocessing import Pool
@@ -14,11 +14,11 @@ def optimize_code(params):
 
 
 if __name__ == '__main__':
-    n_processes = os.cpu_count()
+    n_processes = multiprocessing.cpu_count()
     params = {'n_envs': n_processes}
 
     opt_pool = Pool(processes=n_processes)
-    opt_pool.map(optimize_code, [params for _ in range(n_processes)])
+    opt_pool.imap(optimize_code, [params for _ in range(n_processes)])
 
     from lib.RLTrader import RLTrader
 
