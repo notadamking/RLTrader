@@ -24,6 +24,7 @@ class RLTraderCLI:
 
         self.parser.add_argument("--data-provider", "-d", type=str, default="static")
         self.parser.add_argument("--input-data-path", "-n", type=str, default="data/input/coinbase-1h-btc-usd.csv")
+        self.parser.add_argument("--reward-strategy", "-r", type=str, default="incremental-profit")
         self.parser.add_argument("--pair", "-p", type=str, default="BTC/USD")
         self.parser.add_argument("--debug", "-D", action='store_false')
         self.parser.add_argument('--mini-batches', type=int, default=1, help='Mini batches', dest='n_minibatches')
