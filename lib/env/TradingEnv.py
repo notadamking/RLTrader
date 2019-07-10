@@ -8,6 +8,7 @@ from typing import List, Dict
 
 from lib.env.render import TradingChart
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit
+from lib.env.trade import BaseTradeStrategy, SimulatedTradeStrategy
 from lib.data.providers import BaseDataProvider
 from lib.data.features.transform import max_min_normalize, mean_normalize, log_and_difference, difference
 from lib.util.logger import init_logger
@@ -27,8 +28,10 @@ class TradingEnv(gym.Env):
     def __init__(self,
                  data_provider: BaseDataProvider,
                  reward_strategy: BaseRewardStrategy = IncrementalProfit,
+                 trade_strategy: BaseTradeStrategy = SimulatedTradeStrategy,
                  initial_balance: int = 10000,
-                 commission: float = 0.0025,
+                 commissionPercent: float = 0.25,
+                 maxSlippagePercent: float = 2.0,
                  **kwargs):
         super(TradingEnv, self).__init__()
 
@@ -39,10 +42,18 @@ class TradingEnv(gym.Env):
         self.min_cost_limit: float = kwargs.get('min_cost_limit', 1E-3)
         self.min_amount_limit: float = kwargs.get('min_amount_limit', 1E-3)
 
+        self.initial_balance = round(initial_balance, self.base_precision)
+        self.commissionPercent = commissionPercent
+        self.maxSlippagePercent = maxSlippagePercent
+
         self.data_provider = data_provider
         self.reward_strategy = reward_strategy()
-        self.initial_balance = round(initial_balance, self.base_precision)
-        self.commission = commission
+        self.trade_strategy = trade_strategy(commissionPercent=self.commissionPercent,
+                                             maxSlippagePercent=self.maxSlippagePercent,
+                                             base_precision=self.base_precision,
+                                             asset_precision=self.asset_precision,
+                                             min_cost_limit=self.min_cost_limit,
+                                             min_amount_limit=self.min_amount_limit)
 
         self.render_benchmarks: List[Dict] = kwargs.get('render_benchmarks', [])
         self.normalize_obs: bool = kwargs.get('normalize_obs', True)
@@ -50,11 +61,11 @@ class TradingEnv(gym.Env):
         self.normalize_rewards: bool = kwargs.get('normalize_rewards', False)
         self.stationarize_rewards: bool = kwargs.get('stationarize_rewards', True)
 
-        n_discrete_actions: int = kwargs.get('n_discrete_actions', 24)
-        self.action_space = spaces.Discrete(n_discrete_actions)
+        self.n_discrete_actions: int = kwargs.get('n_discrete_actions', 24)
+        self.action_space = spaces.Discrete(self.n_discrete_actions)
 
-        n_features = 5 + len(self.data_provider.columns)
-        self.obs_shape = (1, n_features)
+        self.n_features = 5 + len(self.data_provider.columns)
+        self.obs_shape = (1, self.n_features)
         self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float16)
 
         self.observations = pd.DataFrame(None, columns=self.data_provider.columns)
@@ -62,55 +73,55 @@ class TradingEnv(gym.Env):
     def _current_price(self, ohlcv_key: str = 'Close'):
         return float(self.current_ohlcv[ohlcv_key])
 
-    def _make_trade(self, action: int, current_price: float):
-        action_type: TradingEnvAction = TradingEnvAction(action % 3)
-        action_amount = float(1 / (action % 8 + 1))
+    def _get_trade(self, action: int):
+        n_action_types = 3
+        n_amount_bins = int(self.n_discrete_actions / n_action_types)
 
-        asset_bought = 0
-        asset_sold = 0
-        cost_of_asset = 0
-        revenue_from_sold = 0
+        action_type: TradingEnvAction = TradingEnvAction(action % n_action_types)
+        action_amount = float(1 / (action % n_amount_bins + 1))
+
+        amount_asset_to_buy = 0
+        amount_asset_to_sell = 0
 
         if action_type == TradingEnvAction.BUY and self.balance >= self.min_cost_limit:
-            buy_price = round(current_price * (1 + self.commission), self.base_precision)
-            cost_of_asset = round(self.balance * action_amount, self.base_precision)
-            asset_bought = round(cost_of_asset / buy_price, self.asset_precision)
-
-            self.last_bought = self.current_step
-            self.asset_held += asset_bought
-            self.balance -= cost_of_asset
-
-            self.trades.append({'step': self.current_step, 'amount': asset_bought,
-                                'total': cost_of_asset, 'type': 'buy'})
-
+            price_adjustment = (1 + (self.commissionPercent / 100)) * (1 + (self.maxSlippagePercent / 100))
+            buy_price = round(self._current_price() * price_adjustment, self.base_precision)
+            amount_asset_to_buy = round(self.balance * action_amount / buy_price, self.asset_precision)
         elif action_type == TradingEnvAction.SELL and self.asset_held >= self.min_amount_limit:
-            sell_price = round(current_price * (1 - self.commission), self.base_precision)
-            asset_sold = round(self.asset_held * action_amount, self.asset_precision)
-            revenue_from_sold = round(asset_sold * sell_price, self.base_precision)
+            amount_asset_to_sell = round(self.asset_held * action_amount, self.asset_precision)
 
-            self.last_sold = self.current_step
-            self.asset_held -= asset_sold
-            self.balance += revenue_from_sold
-
-            self.trades.append({'step': self.current_step, 'amount': asset_sold,
-                                'total': revenue_from_sold, 'type': 'sell'})
-
-        return asset_bought, asset_sold, cost_of_asset, revenue_from_sold
+        return amount_asset_to_buy, amount_asset_to_sell
 
     def _take_action(self, action: int):
-        current_price = self._current_price()
+        amount_asset_to_buy, amount_asset_to_sell = self._get_trade(action)
+        asset_bought, asset_sold, purchase_cost, sale_revenue = self.trade_strategy.trade(buy_amount=amount_asset_to_buy,
+                                                                                          sell_amount=amount_asset_to_sell,
+                                                                                          balance=self.balance,
+                                                                                          asset_held=self.asset_held,
+                                                                                          current_price=self._current_price)
 
-        asset_bought, asset_sold, cost_of_asset, revenue_from_sold = self._make_trade(action, current_price)
+        if asset_bought:
+            self.asset_held += asset_bought
+            self.balance -= purchase_cost
 
-        current_net_worth = round(self.balance + self.asset_held * current_price, self.base_precision)
+            self.trades.append({'step': self.current_step, 'amount': asset_bought,
+                                'total': purchase_cost, 'type': 'buy'})
+        elif asset_sold:
+            self.asset_held -= asset_sold
+            self.balance += sale_revenue
+
+            self.trades.append({'step': self.current_step, 'amount': asset_sold,
+                                'total': sale_revenue, 'type': 'sell'})
+
+        current_net_worth = round(self.balance + self.asset_held * self._current_price(), self.base_precision)
         self.net_worths.append(current_net_worth)
 
         self.account_history = self.account_history.append({
             'balance': self.balance,
             'asset_bought': asset_bought,
-            'cost_of_asset': cost_of_asset,
+            'purchase_cost': purchase_cost,
             'asset_sold': asset_sold,
-            'revenue_from_sold': revenue_from_sold,
+            'sale_revenue': sale_revenue,
         }, ignore_index=True)
 
     def _done(self):
@@ -120,12 +131,11 @@ class TradingEnv(gym.Env):
         return lost_90_percent_net_worth or not has_next_frame
 
     def _reward(self):
-        reward = self.reward_strategy.get_reward(observations=self.observations,
-                                                 net_worths=self.net_worths,
+        reward = self.reward_strategy.get_reward(current_step=self.current_step,
+                                                 current_price=self._current_price(),
+                                                 observations=self.observations,
                                                  account_history=self.account_history,
-                                                 last_bought=self.last_bought,
-                                                 last_sold=self.last_sold,
-                                                 current_price=self._current_price())
+                                                 net_worths=self.net_worths)
 
         reward = float(reward) if np.isfinite(float(reward)) else 0
 
@@ -179,15 +189,13 @@ class TradingEnv(gym.Env):
         self.net_worths = [self.initial_balance]
         self.asset_held = 0
         self.current_step = 0
-        self.last_bought = 0
-        self.last_sold = 0
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,
             'asset_bought': 0,
-            'cost_of_asset': 0,
+            'purchase_cost': 0,
             'asset_sold': 0,
-            'revenue_from_sold': 0,
+            'sale_revenue': 0,
         }])
         self.trades = []
         self.rewards = [0]
@@ -208,8 +216,8 @@ class TradingEnv(gym.Env):
     def render(self, mode='human'):
         if mode == 'system':
             self.logger.info('Price: ' + str(self._current_price()))
-            self.logger.info('Bought: ' + str(self.account_history[2][self.current_step]))
-            self.logger.info('Sold: ' + str(self.account_history[4][self.current_step]))
+            self.logger.info('Bought: ' + str(self.account_history['asset_bought'][self.current_step]))
+            self.logger.info('Sold: ' + str(self.account_history['asset_sold'][self.current_step]))
             self.logger.info('Net worth: ' + str(self.net_worths[-1]))
 
         elif mode == 'human':
