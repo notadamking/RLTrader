@@ -12,12 +12,15 @@ class IncrementalProfit(BaseRewardStrategy):
     def __init__(self):
         pass
 
+    def reset_reward(self):
+        pass
+
     def get_reward(self,
                    current_step: int,
                    current_price: Callable[[str], float],
                    observations: pd.DataFrame,
                    account_history: pd.DataFrame,
-                   net_worths: List[float]):
+                   net_worths: List[float]) -> float:
         reward = 0
 
         curr_balance = account_history['balance'].values[-1]
