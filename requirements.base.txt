@@ -11,3 +11,4 @@ empyrical
 ccxt
 psycopg2
 configparser
+quantstats

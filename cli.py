@@ -41,6 +41,6 @@ if __name__ == '__main__':
     if args.command == 'train':
         trader.train(n_epochs=args.epochs)
     elif args.command == 'test':
-        trader.test(model_epoch=args.model_epoch, should_render=args.no_render)
+        trader.test(model_epoch=args.model_epoch, should_render=args.no_render, render_tearsheet=args.no_tearsheet)
     elif args.command == 'update-static-data':
         download_data_async()
