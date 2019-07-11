@@ -7,16 +7,14 @@
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![Github Release](https://img.shields.io/github/release/notadamking/RLTrader.svg)](https://github.com/notadamking/RLTrader)
 
-In this series of articles, we've created and optimized a Bitcoin trading agent to be highly profitable using deep reinforcement learning.
-
-Discord server: https://discord.gg/ZZ7BGWh
-
-Data sets: https://www.cryptodatadownload.com/data/northamerican/
-
 If you'd like to learn more about how we created this agent, check out the Medium article: https://towardsdatascience.com/creating-bitcoin-trading-bots-that-dont-lose-money-2e7165fb0b29
 
 Later, we optimized this repo using feature engineering, statistical modeling, and Bayesian optimization, check it out:
 https://towardsdatascience.com/using-reinforcement-learning-to-trade-bitcoin-for-massive-profit-b69d0e8f583b
+
+Discord server: https://discord.gg/ZZ7BGWh
+
+Data sets: https://www.cryptodatadownload.com/data/northamerican/
 
 ![Live trading visualization](https://github.com/notadamking/RLTrader/blob/master/visualization.gif)
 
