@@ -64,7 +64,7 @@ class TradingEnv(gym.Env):
         self.n_discrete_actions: int = kwargs.get('n_discrete_actions', 24)
         self.action_space = spaces.Discrete(self.n_discrete_actions)
 
-        self.n_features = 5 + len(self.data_provider.columns)
+        self.n_features = 6 + len(self.data_provider.columns)
         self.obs_shape = (1, self.n_features)
         self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float16)
 
@@ -124,6 +124,7 @@ class TradingEnv(gym.Env):
         self.net_worths.append(current_net_worth)
         self.account_history = self.account_history.append({
             'balance': self.balance,
+            'asset_held': self.asset_held,
             'asset_bought': asset_bought,
             'purchase_cost': purchase_cost,
             'asset_sold': asset_sold,
@@ -202,6 +203,7 @@ class TradingEnv(gym.Env):
 
         self.account_history = pd.DataFrame([{
             'balance': self.balance,
+            'asset_held': self.asset_held,
             'asset_bought': 0,
             'purchase_cost': 0,
             'asset_sold': 0,
