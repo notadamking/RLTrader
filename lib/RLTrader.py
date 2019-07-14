@@ -1,6 +1,8 @@
 import os
 import optuna
 import numpy as np
+import pandas as pd
+import quantstats as qs
 
 from os import path
 from typing import Dict
@@ -12,7 +14,7 @@ from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
 from lib.env.TradingEnv import TradingEnv
-from lib.env.reward import BaseRewardStrategy, IncrementalProfit
+from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
 from lib.util.logger import init_logger
@@ -132,12 +134,16 @@ class RLTrader:
 
         del test_provider
 
-        train_env = SubprocVecEnv([make_env(train_provider, i) for i in range(1)])
-        validation_env = SubprocVecEnv([make_env(validation_provider, i) for i in range(1)])
+        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
+        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider)])
 
         model_params = self.optimize_agent_params(trial)
-        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=1,
-                           tensorboard_log=self.tensorboard_path, **model_params)
+        model = self.Model(self.Policy,
+                           train_env,
+                           verbose=self.model_verbose,
+                           nminibatches=1,
+                           tensorboard_log=self.tensorboard_path,
+                           **model_params)
 
         last_reward = -np.finfo(np.float16).max
         n_steps_per_eval = int(len(train_provider.data_frame) / n_prune_evals_per_trial)
@@ -154,7 +160,7 @@ class RLTrader:
             trades = train_env.get_attr('trades')
 
             if len(trades[0]) < 1:
-                self.logger.info('Pruning trial for not making any trades: ', eval_idx)
+                self.logger.info(f'Pruning trial for not making any trades: {eval_idx}')
                 raise optuna.structs.TrialPruned()
 
             state = None
@@ -179,9 +185,9 @@ class RLTrader:
 
         return -1 * last_reward
 
-    def optimize(self, n_trials: int = 20, *optimize_params):
+    def optimize(self, n_trials: int = 20):
         try:
-            self.optuna_study.optimize(self.optimize_params, n_trials=n_trials, n_jobs=1, *optimize_params)
+            self.optuna_study.optimize(self.optimize_params, n_trials=n_trials, n_jobs=1)
         except KeyboardInterrupt:
             pass
 
@@ -195,7 +201,13 @@ class RLTrader:
 
         return self.optuna_study.trials_dataframe()
 
-    def train(self, n_epochs: int = 10, save_every: int = 1, test_trained_model: bool = False, render_trained_model: bool = False):
+    def train(self,
+              n_epochs: int = 10,
+              save_every: int = 1,
+              test_trained_model: bool = True,
+              render_test_env: bool = False,
+              render_report: bool = True,
+              save_report: bool = False):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del test_provider
@@ -204,8 +216,12 @@ class RLTrader:
 
         model_params = self.get_model_params()
 
-        model = self.Model(self.Policy, train_env, verbose=self.model_verbose, nminibatches=self.n_minibatches,
-                           tensorboard_log=self.tensorboard_path, **model_params)
+        model = self.Model(self.Policy,
+                           train_env,
+                           verbose=self.model_verbose,
+                           nminibatches=self.n_minibatches,
+                           tensorboard_log=self.tensorboard_path,
+                           **model_params)
 
         self.logger.info(f'Training for {n_epochs} epochs')
 
@@ -221,11 +237,14 @@ class RLTrader:
                 model.save(model_path)
 
                 if test_trained_model:
-                    self.test(model_epoch, should_render=render_trained_model)
+                    self.test(model_epoch,
+                              render_env=render_test_env,
+                              render_report=render_report,
+                              save_report=save_report)
 
         self.logger.info(f'Trained {n_epochs} models')
 
-    def test(self, model_epoch: int = 0, should_render: bool = True):
+    def test(self, model_epoch: int = 0, render_env: bool = True, render_report: bool = True, save_report: bool = False):
         train_provider, test_provider = self.data_provider.split_data_train_test(self.train_split_percentage)
 
         del train_provider
@@ -247,14 +266,30 @@ class RLTrader:
 
         for _ in range(len(test_provider.data_frame)):
             action, state = model.predict(zero_completed_obs, state=state)
-            obs, reward, _, __ = test_env.step([action[0]])
+            obs, reward, done, info = test_env.step([action[0]])
 
             zero_completed_obs[0, :] = obs
 
             rewards.append(reward)
 
-            if should_render:
+            if render_env:
                 test_env.render(mode='human')
+
+            if done:
+                net_worths = pd.DataFrame({
+                    'Date': info[0]['timestamps'],
+                    'Balance': info[0]['net_worths'],
+                })
+
+                net_worths.set_index('Date', drop=True, inplace=True)
+                returns = net_worths.pct_change()[1:]
+
+                if render_report:
+                    qs.plots.snapshot(returns.Balance, title='RL Trader Performance')
+
+                if save_report:
+                    reports_path = path.join('data', 'reports', f'{self.study_name}__{model_epoch}.html')
+                    qs.reports.html(returns.Balance, file=reports_path)
 
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')

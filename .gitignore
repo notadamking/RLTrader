@@ -1,7 +1,11 @@
 .vscode
+.ipynb_checkpoints
+.pytest_cache
 **/__pycache__
 data/tensorboard/*
 data/agents/*
 data/postgres/*
 data/log/*
+data/reports/*
 *.pkl
+venv/*
