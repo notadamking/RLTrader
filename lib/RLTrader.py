@@ -294,12 +294,11 @@ class RLTrader:
                     qs.plots.snapshot(returns.Balance, title='RL Trader Performance')
 
                 if save_report:
-                    reports_path = path.join('data', 'reports', f'{self.study_name}__{model_epoch}.html')
-                    # try:
-                    qs.reports.html(returns.Balance, file=reports_path)
-                    # except Exception as err:
-                    #     print(err)
-                    #     pass
+                    reports_path = path.join('data', 'reports')
+                    if not os.path.exists(reports_path):
+                        os.makedirs(reports_path)
+                    report_file = path.join(reports_path, f'{self.study_name}__{model_epoch}.html')
+                    qs.reports.html(returns.Balance, file=report_file)
 
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
