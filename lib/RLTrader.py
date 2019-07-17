@@ -295,11 +295,7 @@ class RLTrader:
 
                 if save_report:
                     reports_path = path.join('data', 'reports', f'{self.study_name}__{model_epoch}.html')
-                    # try:
                     qs.reports.html(returns.Balance, file=reports_path)
-                    # except Exception as err:
-                    #     print(err)
-                    #     pass
 
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
