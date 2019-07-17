@@ -219,6 +219,8 @@ Contributions are encouraged and I will always do my best to get them implemente
 
 **Working on your first Pull Request?** You can learn how from this _free_ series [How to Contribute to an Open Source Project on GitHub](https://egghead.io/series/how-to-contribute-to-an-open-source-project-on-github)
 
+![https://github.com/notadamking/rltrader/graphs/contributors](https://contributors-img.firebaseapp.com/image?repo=notadamking/rltrader)
+
 # Support
 
 Want to show your support for this project and help it grow?
@@ -226,3 +228,6 @@ Want to show your support for this project and help it grow?
 BTC Address: `1Lc47bhYvdyKGk1qN8oBHdYQTkbFLL3PFw`
 
 ETH Address: `0x9907A0cF64Ec9Fbf6Ed8FD4971090DE88222a9aC`
+
+Supporters:
+Ap9944
