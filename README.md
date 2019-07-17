@@ -232,3 +232,5 @@ ETH Address: `0x9907A0cF64Ec9Fbf6Ed8FD4971090DE88222a9aC`
 Supporters:
 
 * Ap9944
+* KILLth
+* Nex
