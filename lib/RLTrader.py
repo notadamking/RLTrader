@@ -112,6 +112,8 @@ class RLTrader:
             'cliprange': params['cliprange'],
             'noptepochs': int(params['noptepochs']),
             'lam': params['lam'],
+            'vf_coef': params['vf_coef'],
+            'max_grad_norm': params['max_grad_norm']
         }
 
     def optimize_agent_params(self, trial):
@@ -119,13 +121,17 @@ class RLTrader:
             return {'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.)}
 
         return {
-            'n_steps': int(trial.suggest_loguniform('n_steps', 16, 2048)),
-            'gamma': trial.suggest_loguniform('gamma', 0.9, 0.9999),
-            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1.),
-            'ent_coef': trial.suggest_loguniform('ent_coef', 1e-8, 1e-1),
-            'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.4),
-            'noptepochs': int(trial.suggest_loguniform('noptepochs', 1, 48)),
-            'lam': trial.suggest_uniform('lam', 0.8, 1.)
+            # PPO2 hyperparameter ranges
+            # https://medium.com/aureliantactics/ppo-hyperparameters-and-ranges-6fc2d29bccbe
+            'n_steps': int(trial.suggest_loguniform('n_steps', 32, 5000)),
+            'gamma': trial.suggest_uniform('gamma', 0.8, 0.9997),
+            'learning_rate': trial.suggest_loguniform('learning_rate', 5e-6, 0.003),
+            'ent_coef': trial.suggest_uniform('ent_coef', 0, 1e-2),
+            'cliprange': trial.suggest_uniform('cliprange', 0.1, 0.3),
+            'noptepochs': int(trial.suggest_uniform('noptepochs', 3, 30)),
+            'lam': trial.suggest_uniform('lam', 0.9, 1.),
+            'vf_coef': trial.suggest_uniform('vf_coef', 0.5, 1.),
+            'max_grad_norm': trial.suggest_uniform('max_grad_norm', 0.4, 0.6),
         }
 
     def optimize_params(self, trial, n_prune_evals_per_trial: int = 2, n_tests_per_eval: int = 1):
