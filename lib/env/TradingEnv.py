@@ -6,7 +6,7 @@ from gym import spaces
 from enum import Enum
 from typing import List, Dict
 
-from lib.env.exchange import BaseExchange, DummyExchange, ExchangeMode
+from lib.env.exchange import BaseExchange, SimulatedExchange
 from lib.env.render import TradingChart
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.env.trade import BaseTradeStrategy, SimulatedTradeStrategy
@@ -33,14 +33,14 @@ class TradingEnv(gym.Env):
 
     def __init__(self,
                  data_provider: BaseDataProvider,
-                 exchange: BaseExchange = SimulatedExchange
+                 exchange: BaseExchange = SimulatedExchange,
                  reward_strategy: BaseRewardStrategy = IncrementalProfit,
                  trade_strategy: BaseTradeStrategy = SimulatedTradeStrategy,
                  initial_balance: int = 10000,
                  commissionPercent: float = 0.25,
                  maxSlippagePercent: float = 2.0,
                  trading_mode: TradingMode = TradingMode.PAPER,
-                 exchange_args: Dict
+                 exchange_args: Dict = {}
                  **kwargs):
         super(TradingEnv, self).__init__()
 
