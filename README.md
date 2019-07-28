@@ -225,6 +225,8 @@ Contributions are encouraged and I will always do my best to get them implemente
 
 Want to show your support for this project and help it grow?
 
+Patreon: https://www.patreon.com/notadamking
+
 BTC Address: `1Lc47bhYvdyKGk1qN8oBHdYQTkbFLL3PFw`
 
 ETH Address: `0x9907A0cF64Ec9Fbf6Ed8FD4971090DE88222a9aC`
