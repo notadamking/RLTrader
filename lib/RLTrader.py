@@ -13,7 +13,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
-from lib.env.TradingEnv import TradingEnv
+from lib.env.TradingEnv import TradingEnv, TradingMode
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
@@ -134,8 +134,8 @@ class RLTrader:
 
         del test_provider
 
-        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
-        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider)])
+        train_env = DummyVecEnv([lambda: TradingEnv(train_provider, trading_mode=TradingMode.TRAIN)])
+        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider, trading_mode=TradingMode.TRAIN)])
 
         model_params = self.optimize_agent_params(trial)
         model = self.Model(self.Policy,

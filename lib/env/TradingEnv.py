@@ -40,7 +40,7 @@ class TradingEnv(gym.Env):
                  commissionPercent: float = 0.25,
                  maxSlippagePercent: float = 2.0,
                  trading_mode: TradingMode = TradingMode.PAPER,
-                 exchange_args: Dict = {}
+                 exchange_args: Dict = {},
                  **kwargs):
         super(TradingEnv, self).__init__()
 
@@ -55,25 +55,7 @@ class TradingEnv(gym.Env):
         self.maxSlippagePercent = maxSlippagePercent
         self.trading_mode = trading_mode
 
-        if self.trading_mode == TradingMode.TRAIN or self.trading_mode == TradingMode.TEST:
-            assert type(data_provider) == 'StaticDataProvider'
-            assert type(exchange) == 'SimulatedExchange'
-            assert type(trade_strategy) == 'SimulatedTradeStrategy'
-            self.exchange = exchange(self, initial_balance, **exchange_args)
-
-        elif self.trading_mode == TradingMode.PAPER:
-            assert type(data_provider) == 'ExchangeDataProvider'
-            assert type(exchange) == 'SimulatedExchange'
-            assert type(trade_strategy) == 'SimulatedTradeStrategy'
-            self.exchange = exchange(self, **exchange_args)
-
-        elif self.trading_mode == TradingMode.LIVE:
-            assert type(data_provider) == 'ExchangeDataProvider'
-            assert type(exchange) == 'LiveExchange'
-            assert type(trade_strategy) == 'LiveTradeStrategy'
-            self.exchange = exchange(self, **exchange_args)
-
-        self.data_provider = data_provider()
+        self.data_provider = data_provider
         self.reward_strategy = reward_strategy()
         self.trade_strategy = trade_strategy(commissionPercent=self.commissionPercent,
                                              maxSlippagePercent=self.maxSlippagePercent,
@@ -81,6 +63,17 @@ class TradingEnv(gym.Env):
                                              asset_precision=self.asset_precision,
                                              min_cost_limit=self.min_cost_limit,
                                              min_amount_limit=self.min_amount_limit)
+
+        if self.trading_mode == TradingMode.TRAIN or self.trading_mode == TradingMode.TEST:
+            self.exchange = exchange(self, initial_balance, **exchange_args)
+
+        elif self.trading_mode == TradingMode.PAPER:
+            self.exchange = exchange(self, **exchange_args)
+
+        elif self.trading_mode == TradingMode.LIVE:
+            self.exchange = exchange(self, **exchange_args)
+
+
         self.render_benchmarks: List[Dict] = kwargs.get('render_benchmarks', [])
         self.normalize_obs: bool = kwargs.get('normalize_obs', True)
         self.stationarize_obs: bool = kwargs.get('stationarize_obs', True)

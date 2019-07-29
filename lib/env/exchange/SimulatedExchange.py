@@ -1,4 +1,6 @@
 
+import pandas as pd
+
 from lib.env import TradingEnv
 from lib.env.exchange import BaseExchange
 
@@ -6,7 +8,7 @@ class SimulatedExchange(BaseExchange):
 
     def __init__(self, env: TradingEnv, initial_balance: int = 10000, **kwargs):
         self.env = env
-        self.initial_balance = round(initial_balance, self.base_precision)
+        self.initial_balance = round(initial_balance, env.base_precision)
         self.balance = self.initial_balance
         self.net_worths = [self.initial_balance]
         self.asset_held = 0
