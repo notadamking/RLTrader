@@ -157,7 +157,7 @@ class RLTrader:
             rewards = []
             n_episodes, reward_sum = 0, 0.0
 
-            trades = train_env.get_attr('trades')
+            trades = [exchange.trades for exchange in train_env.get_attr('exchange')]
 
             if len(trades[0]) < 1:
                 self.logger.info(f'Pruning trial for not making any trades: {eval_idx}')
@@ -293,3 +293,6 @@ class RLTrader:
 
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
+
+    def live(self, paper_mode: bool = True):
+        pass

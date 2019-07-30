@@ -20,11 +20,13 @@ class TradingEnvAction(Enum):
     SELL = 1
     HOLD = 2
 
+
 class TradingMode(Enum):
     TRAIN = 0
     TEST = 1
     PAPER = 2
     LIVE = 3
+
 
 class TradingEnv(gym.Env):
     """A reinforcement trading environment made for use with gym-enabled algorithms"""
@@ -37,8 +39,8 @@ class TradingEnv(gym.Env):
                  reward_strategy: BaseRewardStrategy = IncrementalProfit,
                  trade_strategy: BaseTradeStrategy = SimulatedTradeStrategy,
                  initial_balance: int = 10000,
-                 commissionPercent: float = 0.25,
-                 maxSlippagePercent: float = 2.0,
+                 commission_pct: float = 0.25,
+                 max_slippage_pct: float = 2.0,
                  trading_mode: TradingMode = TradingMode.PAPER,
                  exchange_args: Dict = {},
                  **kwargs):
@@ -51,14 +53,14 @@ class TradingEnv(gym.Env):
         self.min_cost_limit: float = kwargs.get('min_cost_limit', 1E-3)
         self.min_amount_limit: float = kwargs.get('min_amount_limit', 1E-3)
 
-        self.commissionPercent = commissionPercent
-        self.maxSlippagePercent = maxSlippagePercent
+        self.commission_pct = commission_pct
+        self.max_slippage_pct = max_slippage_pct
         self.trading_mode = trading_mode
 
         self.data_provider = data_provider
         self.reward_strategy = reward_strategy()
-        self.trade_strategy = trade_strategy(commissionPercent=self.commissionPercent,
-                                             maxSlippagePercent=self.maxSlippagePercent,
+        self.trade_strategy = trade_strategy(commissionPercent=self.commission_pct,
+                                             maxSlippagePercent=self.max_slippage_pct,
                                              base_precision=self.base_precision,
                                              asset_precision=self.asset_precision,
                                              min_cost_limit=self.min_cost_limit,
@@ -83,7 +85,7 @@ class TradingEnv(gym.Env):
         self.n_discrete_actions: int = kwargs.get('n_discrete_actions', 24)
         self.action_space = spaces.Discrete(self.n_discrete_actions)
 
-        self.n_features = 5 + len(self.data_provider.columns)
+        self.n_features = 6 + len(self.data_provider.columns)
         self.obs_shape = (1, self.n_features)
         self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float16)
 
@@ -99,21 +101,21 @@ class TradingEnv(gym.Env):
         action_type: TradingEnvAction = TradingEnvAction(action % n_action_types)
         action_amount = float(1 / (action % n_amount_bins + 1))
 
-        commission = self.commissionPercent / 100
-        max_slippage = self.maxSlippagePercent / 100
+        commission = self.commission_pct / 100
+        max_slippage = self.max_slippage_pct / 100
 
         amount_asset_to_buy = 0
         amount_asset_to_sell = 0
 
-        if action_type == TradingEnvAction.BUY and self.balance >= self.min_cost_limit:
-            price_adjustment = (1 + slippage) * (1 + max_slippage)
+        if action_type == TradingEnvAction.BUY and self.exchange.balance >= self.min_cost_limit:
+            price_adjustment = (1 + commission) * (1 + max_slippage)
             buy_price = self._current_price() * price_adjustment
             buy_price = round(buy_price, self.base_precision)
-            amount_asset_to_buy = self.balance * action_amount / buy_price
+            amount_asset_to_buy = self.exchange.balance * action_amount / buy_price
             amount_asset_to_buy = round(amount_asset_to_buy, self.asset_precision)
 
-        elif action_type == TradingEnvAction.SELL and self.asset_held >= self.min_amount_limit:
-            amount_asset_to_sell = self.asset_held * action_amount
+        elif action_type == TradingEnvAction.SELL and self.exchange.asset_held >= self.min_amount_limit:
+            amount_asset_to_sell = self.exchange.asset_held * action_amount
             amount_asset_to_sell = round(amount_asset_to_sell, self.asset_precision)
 
         return amount_asset_to_buy, amount_asset_to_sell
@@ -128,8 +130,8 @@ class TradingEnv(gym.Env):
         reward = self.reward_strategy.get_reward(current_step=self.current_step,
                                                  current_price=self._current_price,
                                                  observations=self.observations,
-                                                 account_history=self.account_history,
-                                                 net_worths=self.net_worths)
+                                                 account_history=self.exchange.account_history,
+                                                 net_worths=self.exchange.net_worths)
 
         reward = float(reward) if np.isfinite(float(reward)) else 0
 
@@ -200,6 +202,8 @@ class TradingEnv(gym.Env):
         elif amount_asset_to_sell:
             self.exchange.sell(amount_asset_to_sell)
             self.reward_strategy.reset_reward()
+        else:
+            self.exchange.hold()
 
         self.current_step += 1
 

@@ -2,6 +2,7 @@
 from lib.env import TradingEnv
 from lib.env.exchange import BaseExchange
 
+
 class LiveExchange(BaseExchange):
 
     def __init__(self, env: TradingEnv, **kwargs):
@@ -16,3 +17,6 @@ class LiveExchange(BaseExchange):
 
     def sell(self, amount: float):
         pass
+
+    def hold(self):
+        raise NotImplementedError

@@ -5,6 +5,7 @@ import pandas as pd
 from enum import Enum
 from lib.env import TradingEnv
 
+
 class BaseExchange(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
@@ -21,4 +22,8 @@ class BaseExchange(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def sell(self, amount: float):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def hold(self):
         raise NotImplementedError
