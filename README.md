@@ -1,4 +1,4 @@
-# RLTrader (Formerly Bitcoin-Trader-RL)
+# RLTrader — The Predecessor to [TensorTrade](https://github.com/notadamking/tensortrade)
 
 [![Build Status](https://travis-ci.org/notadamking/RLTrader.svg?branch=master)](https://travis-ci.org/notadamking/RLTrader)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](http://makeapullrequest.com)
