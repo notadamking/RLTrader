@@ -7,6 +7,8 @@
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![Github Release](https://img.shields.io/github/release/notadamking/RLTrader.svg)](https://github.com/notadamking/RLTrader)
 
+Development on this library has slowed down, in favor of working on TensorTrade - a framework for trading with RL: https://github.com/notadamking/tensortrade
+
 If you'd like to learn more about how we created this agent, check out the Medium article: https://towardsdatascience.com/creating-bitcoin-trading-bots-that-dont-lose-money-2e7165fb0b29
 
 Later, we optimized this repo using feature engineering, statistical modeling, and Bayesian optimization, check it out:
@@ -176,11 +178,7 @@ Contributions are encouraged and I will always do my best to get them implemente
 
 Want to show your support for this project and help it grow?
 
-Patreon: https://www.patreon.com/notadamking
-
-BTC Address: `1Lc47bhYvdyKGk1qN8oBHdYQTkbFLL3PFw`
-
-ETH Address: `0x9907A0cF64Ec9Fbf6Ed8FD4971090DE88222a9aC`
+Head over to the successor framework: https://github.com/notadamking/tensortrade
 
 Supporters:
 
