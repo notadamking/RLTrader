@@ -13,7 +13,7 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 from stable_baselines import PPO2
 
-from lib.env.TradingEnv import TradingEnv
+from lib.env.TradingEnv import TradingEnv, TradingMode
 from lib.env.reward import BaseRewardStrategy, IncrementalProfit, WeightedUnrealizedProfit
 from lib.data.providers.dates import ProviderDateFormat
 from lib.data.providers import BaseDataProvider,  StaticDataProvider, ExchangeDataProvider
@@ -134,8 +134,8 @@ class RLTrader:
 
         del test_provider
 
-        train_env = DummyVecEnv([lambda: TradingEnv(train_provider)])
-        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider)])
+        train_env = DummyVecEnv([lambda: TradingEnv(train_provider, trading_mode=TradingMode.TRAIN)])
+        validation_env = DummyVecEnv([lambda: TradingEnv(validation_provider, trading_mode=TradingMode.TRAIN)])
 
         model_params = self.optimize_agent_params(trial)
         model = self.Model(self.Policy,
@@ -157,7 +157,7 @@ class RLTrader:
             rewards = []
             n_episodes, reward_sum = 0, 0.0
 
-            trades = train_env.get_attr('trades')
+            trades = [exchange.trades for exchange in train_env.get_attr('exchange')]
 
             if len(trades[0]) < 1:
                 self.logger.info(f'Pruning trial for not making any trades: {eval_idx}')
@@ -293,3 +293,6 @@ class RLTrader:
 
         self.logger.info(
             f'Finished testing model ({self.study_name}__{model_epoch}): ${"{:.2f}".format(np.sum(rewards))}')
+
+    def live(self, paper_mode: bool = True):
+        pass

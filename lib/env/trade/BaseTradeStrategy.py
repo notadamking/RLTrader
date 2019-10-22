@@ -3,6 +3,7 @@ from typing import Tuple, Callable
 
 
 class BaseTradeStrategy(object, metaclass=ABCMeta):
+    
     @abstractmethod
     def __init__(self,
                  commissionPercent: float,
@@ -15,8 +16,8 @@ class BaseTradeStrategy(object, metaclass=ABCMeta):
 
     @abstractmethod
     def trade(self,
-              action: int,
-              n_discrete_actions: int,
+              buy_amount: float,
+              sell_amount: float,
               balance: float,
               asset_held: float,
               current_price: Callable[[str], float]) -> Tuple[float, float, float, float]:

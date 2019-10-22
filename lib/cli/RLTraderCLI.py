@@ -70,6 +70,10 @@ class RLTraderCLI:
         test_parser.add_argument('--save-report', dest="save_report", action="store_true",
                                  help='Save the performance report as .html')
 
+        live_parser = subparsers.add_parser('live', description='Live model')
+        live_parser.add_argument('--paper-mode', dest="paper_mode", action="store_true",
+                                 help='Trade in paper mode')
+
         subparsers.add_parser('update-static-data', description='Update static data')
 
         self.parser.set_defaults(**defaults)
