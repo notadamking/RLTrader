@@ -4,7 +4,7 @@ sklearn
 matplotlib
 gym
 stable_baselines
-optuna
+optuna==0.10.0
 ta
 statsmodels==0.10.0rc2
 empyrical
