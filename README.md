@@ -127,11 +127,21 @@ If you want to run existing tests, then just use:
 
 # Windows 10 installation, no CUDA installation needed
 
+```bash
 conda create --name rltrader python=3.6.8 pip git
+```
+```bash
 conda activate rltrader
+```
+```bash
 conda install tensorflow-gpu
+```
+```bash
 git clone https://github.com/notadamking/RLTrader
+```
+```bash
 pip install -r RLTrader/requirements.txt
+```
 
 # Optimizing, Training, and Testing
 
